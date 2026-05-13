@@ -1,0 +1,17 @@
+{
+  "name": "旅遊規劃",
+  "short_name": "旅遊",
+  "description": "兩人旅遊規劃 App",
+  "start_url": ".",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#185FA5",
+  "icons": [
+    {
+      "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'><rect width='512' height='512' rx='112' fill='%23185FA5'/><text y='.85em' font-size='380' x='66'>🎵</text></svg>",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

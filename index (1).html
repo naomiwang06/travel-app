@@ -1,0 +1,1340 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="旅遊規劃">
+<title>旅遊規劃</title>
+
+<!-- ★ 第 7 行：把下面的網址換成你的 Firebase Realtime Database 網址 -->
+<script>const FIREBASE_URL = 'YOUR_FIREBASE_URL';</script>
+
+<style>
+  :root {
+    --bg: #f5f5f5;
+    --card: #ffffff;
+    --border: rgba(0,0,0,0.1);
+    --border2: rgba(0,0,0,0.2);
+    --text: #1a1a1a;
+    --text2: #555;
+    --text3: #999;
+    --radius: 12px;
+    --radius-sm: 8px;
+    --blue: #185FA5;
+    --blue-bg: #E6F1FB;
+    --green: #0F6E56;
+    --green-bg: #E1F5EE;
+    --amber: #854F0B;
+    --amber-bg: #FAEEDA;
+    --purple: #534AB7;
+    --purple-bg: #EEEDFE;
+    --pink: #993556;
+    --pink-bg: #FBEAF0;
+    --red: #E24B4A;
+    --red-bg: #FCEBEB;
+    --gmap: #1a73e8;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #1c1c1e;
+      --card: #2c2c2e;
+      --border: rgba(255,255,255,0.1);
+      --border2: rgba(255,255,255,0.2);
+      --text: #f0f0f0;
+      --text2: #aaa;
+      --text3: #666;
+      --blue-bg: #0c2d4a;
+      --green-bg: #0a2e22;
+      --amber-bg: #3a2000;
+      --purple-bg: #1e1a4a;
+      --pink-bg: #3a0f1f;
+    }
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  body { font-family: -apple-system, 'Helvetica Neue', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+  .app { max-width: 430px; margin: 0 auto; min-height: 100vh; display: flex; flex-direction: column; }
+
+  /* Header */
+  .hdr { background: var(--card); padding: env(safe-area-inset-top, 0) 16px 0; border-bottom: 0.5px solid var(--border); position: sticky; top: 0; z-index: 100; }
+  .hdr-inner { padding: 12px 0 10px; }
+  .hdr-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+  .hdr-title { font-size: 18px; font-weight: 600; color: var(--text); }
+  .sync-btn { display: flex; align-items: center; gap: 5px; font-size: 12px; padding: 4px 10px; border-radius: 20px; background: var(--green-bg); color: var(--green); border: none; cursor: pointer; font-weight: 500; }
+  .sync-dot { width: 6px; height: 6px; border-radius: 50%; background: #1D9E75; }
+  .sync-dot.offline { background: var(--text3); }
+
+  /* Tabs */
+  .tabs { display: flex; gap: 3px; background: var(--bg); border-radius: var(--radius-sm); padding: 3px; }
+  .tab { flex: 1; text-align: center; font-size: 11px; padding: 6px 2px; border-radius: 6px; cursor: pointer; color: var(--text3); border: none; background: transparent; display: flex; align-items: center; justify-content: center; gap: 3px; font-family: inherit; }
+  .tab.on { background: var(--card); color: var(--text); font-weight: 600; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+
+  /* Content */
+  .content { flex: 1; padding: 12px 12px calc(env(safe-area-inset-bottom, 0) + 12px); overflow-y: auto; }
+  .tab-page { display: none; }
+  .tab-page.on { display: block; }
+  .sec-label { font-size: 11px; font-weight: 600; color: var(--text3); letter-spacing: 0.6px; text-transform: uppercase; margin: 4px 2px 8px; }
+
+  /* Day cards */
+  .daycard { background: var(--card); border-radius: var(--radius); border: 0.5px solid var(--border); margin-bottom: 8px; overflow: hidden; }
+  .day-hdr { display: flex; align-items: center; padding: 11px 13px; gap: 8px; }
+  .day-num { width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 600; flex-shrink: 0; }
+  .day-meta { flex: 1; cursor: pointer; }
+  .day-name { font-size: 14px; font-weight: 600; color: var(--text); }
+  .day-sub { font-size: 12px; color: var(--text2); margin-top: 2px; }
+  .day-badges { display: flex; gap: 3px; flex-wrap: wrap; }
+  .badge { font-size: 10px; padding: 2px 7px; border-radius: 10px; font-weight: 600; }
+  .b-blue { background: var(--blue-bg); color: var(--blue); }
+  .b-green { background: var(--green-bg); color: var(--green); }
+  .b-amber { background: var(--amber-bg); color: var(--amber); }
+  .b-purple { background: var(--purple-bg); color: var(--purple); }
+  .b-pink { background: var(--pink-bg); color: var(--pink); }
+  .day-actions { display: flex; gap: 2px; flex-shrink: 0; }
+  .icon-btn { width: 30px; height: 30px; border: none; background: transparent; cursor: pointer; border-radius: 8px; display: flex; align-items: center; justify-content: center; color: var(--text3); font-size: 15px; transition: background 0.15s; }
+  .icon-btn:hover, .icon-btn:active { background: var(--bg); color: var(--text2); }
+  .icon-btn.red:hover, .icon-btn.red:active { color: var(--red); background: var(--red-bg); }
+  .chev { transition: transform 0.2s; cursor: pointer; }
+  .chev.open { transform: rotate(180deg); }
+
+  /* Events */
+  .day-body { border-top: 0.5px solid var(--border); padding: 8px 10px 6px; }
+  .ev-wrap { border-radius: var(--radius-sm); margin-bottom: 2px; border: 1px solid transparent; transition: all 0.15s; }
+  .ev-wrap.drag-over { border-color: var(--blue); background: var(--blue-bg); }
+  .ev-wrap.dragging { opacity: 0.4; }
+  .ev { display: flex; gap: 8px; padding: 5px 4px; align-items: flex-start; position: relative; }
+  .ev:hover .ev-acts, .ev:focus-within .ev-acts { opacity: 1; }
+  .drag-handle { width: 16px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; cursor: grab; color: var(--text3); font-size: 14px; padding-top: 3px; touch-action: none; }
+  .ev-time { font-size: 11px; color: var(--text3); width: 36px; flex-shrink: 0; padding-top: 3px; line-height: 1.3; }
+  .ev-line { display: flex; flex-direction: column; align-items: center; }
+  .ev-dot { width: 7px; height: 7px; border-radius: 50%; margin-top: 4px; flex-shrink: 0; }
+  .ev-conn { width: 1.5px; flex: 1; min-height: 16px; margin-top: 2px; opacity: 0.3; }
+  .ev-body { flex: 1; padding-bottom: 6px; }
+  .ev-title { font-size: 13px; font-weight: 600; color: var(--text); }
+  .ev-note { font-size: 12px; color: var(--text2); margin-top: 2px; line-height: 1.4; }
+  .ev-acts { display: flex; gap: 2px; opacity: 0; transition: opacity 0.15s; padding-top: 2px; flex-shrink: 0; }
+  .train-chip { display: inline-flex; align-items: center; gap: 5px; font-size: 11px; background: var(--bg); padding: 3px 9px; border-radius: 20px; margin-top: 5px; color: var(--text2); }
+  .train-chip b { font-weight: 600; color: var(--text); }
+  .warn-chip { display: inline-flex; align-items: center; gap: 4px; font-size: 11px; padding: 3px 9px; border-radius: 20px; margin-top: 4px; font-weight: 600; background: var(--amber-bg); color: var(--amber); }
+  .map-btn { display: inline-flex; align-items: center; gap: 4px; font-size: 11px; color: #fff; padding: 4px 10px; border-radius: 20px; background: var(--gmap); border: none; cursor: pointer; margin-top: 5px; text-decoration: none; font-weight: 600; }
+  .flex-seg { border-radius: var(--radius-sm); padding: 8px 10px; margin: 3px 0 5px; border-left: 3px solid; }
+  .flex-tags { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 5px; }
+  .flex-tag { font-size: 11px; padding: 2px 8px; border-radius: 10px; }
+  .add-ev-btn { display: flex; align-items: center; gap: 5px; padding: 7px 4px; font-size: 12px; color: var(--text3); background: none; border: none; cursor: pointer; width: 100%; margin-top: 3px; font-family: inherit; }
+  .add-day-btn { width: 100%; padding: 10px; border-radius: var(--radius-sm); border: 1.5px dashed var(--border2); background: transparent; color: var(--text2); font-size: 13px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; margin-top: 4px; font-family: inherit; }
+
+  /* Remind cards */
+  .remind-card { border-radius: var(--radius); border: 0.5px solid; margin-bottom: 8px; padding: 11px 13px; display: flex; gap: 10px; align-items: flex-start; cursor: pointer; }
+  .r-icon { width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  .r-title { font-size: 13px; font-weight: 600; }
+  .r-sub { font-size: 12px; margin-top: 2px; line-height: 1.4; }
+  .r-date { font-size: 11px; margin-top: 4px; display: flex; align-items: center; gap: 4px; }
+  .r-check { width: 22px; height: 22px; border-radius: 50%; border: 1.5px solid; display: flex; align-items: center; justify-content: center; cursor: pointer; flex-shrink: 0; background: transparent; transition: all 0.15s; }
+  .r-check.done { background: currentColor; }
+
+  /* Pack cards */
+  .pack-card { background: var(--card); border-radius: var(--radius); border: 0.5px solid var(--border); margin-bottom: 8px; overflow: hidden; }
+  .pack-hdr { display: flex; align-items: center; padding: 11px 13px; cursor: pointer; gap: 8px; }
+  .pack-icon { width: 28px; height: 28px; border-radius: 50%; background: var(--green-bg); display: flex; align-items: center; justify-content: center; }
+  .pack-body { border-top: 0.5px solid var(--border); padding: 5px 13px 10px; }
+  .pack-item { display: flex; align-items: center; gap: 8px; padding: 6px 0; border-bottom: 0.5px solid var(--border); }
+  .pack-item:last-child { border-bottom: none; }
+  .pack-check { width: 20px; height: 20px; border-radius: 5px; border: 1.5px solid var(--border2); cursor: pointer; flex-shrink: 0; display: flex; align-items: center; justify-content: center; transition: all 0.15s; }
+  .pack-check.on { background: #1D9E75; border-color: #1D9E75; }
+  .pack-label { flex: 1; font-size: 13px; color: var(--text); }
+  .pack-label.done { color: var(--text3); text-decoration: line-through; }
+  .who-badge { font-size: 10px; padding: 2px 7px; border-radius: 10px; font-weight: 600; }
+  .who-a { background: var(--blue-bg); color: var(--blue); }
+  .who-b { background: var(--purple-bg); color: var(--purple); }
+  .pack-del { opacity: 0; transition: opacity 0.15s; width: 24px; height: 24px; border: none; background: transparent; cursor: pointer; color: var(--text3); display: flex; align-items: center; justify-content: center; border-radius: 5px; }
+  .pack-item:hover .pack-del { opacity: 1; }
+  .pack-del:hover { color: var(--red); background: var(--red-bg); }
+
+  /* Accom cards */
+  .accard { background: var(--card); border-radius: var(--radius); border: 0.5px solid var(--border); margin-bottom: 8px; padding: 13px; }
+  .status-ok { background: var(--green-bg); color: var(--green); font-size: 11px; padding: 2px 8px; border-radius: 10px; font-weight: 600; }
+  .status-warn { background: var(--amber-bg); color: var(--amber); font-size: 11px; padding: 2px 8px; border-radius: 10px; font-weight: 600; }
+
+  /* Modal */
+  .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); display: none; align-items: flex-end; justify-content: center; z-index: 200; }
+  .modal-overlay.open { display: flex; }
+  .modal { background: var(--card); border-radius: var(--radius) var(--radius) 0 0; padding: 20px 20px calc(env(safe-area-inset-bottom, 0) + 20px); width: 100%; max-width: 430px; max-height: 90vh; overflow-y: auto; }
+  .modal-handle { width: 36px; height: 4px; background: var(--border2); border-radius: 2px; margin: -8px auto 16px; }
+  .modal h3 { font-size: 16px; font-weight: 700; color: var(--text); margin-bottom: 14px; }
+  .form-label { font-size: 12px; font-weight: 600; color: var(--text2); margin-bottom: 5px; margin-top: 12px; display: block; }
+  input[type=text], select, textarea { width: 100%; padding: 10px 12px; font-size: 14px; border: 1px solid var(--border2); border-radius: var(--radius-sm); background: var(--bg); color: var(--text); font-family: inherit; -webkit-appearance: none; }
+  input[type=text]:focus, select:focus, textarea:focus { outline: none; border-color: var(--blue); }
+  .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .modal-actions { display: flex; gap: 8px; margin-top: 18px; }
+  .btn-primary { flex: 1; padding: 12px; background: var(--blue); color: #fff; border: none; border-radius: var(--radius-sm); font-size: 14px; cursor: pointer; font-weight: 600; font-family: inherit; }
+  .btn-ghost { padding: 12px 16px; background: transparent; color: var(--text2); border: 1px solid var(--border2); border-radius: var(--radius-sm); font-size: 14px; cursor: pointer; font-family: inherit; }
+  .btn-danger { padding: 12px 14px; background: transparent; color: var(--red); border: 1px solid #F09595; border-radius: var(--radius-sm); font-size: 14px; cursor: pointer; font-family: inherit; }
+  .type-btns { display: flex; gap: 6px; margin-top: 5px; }
+  .type-btn { flex: 1; padding: 9px; font-size: 12px; font-weight: 600; border: 1px solid var(--border2); border-radius: var(--radius-sm); cursor: pointer; background: var(--bg); color: var(--text2); font-family: inherit; }
+  .type-btn.on { background: var(--blue-bg); color: var(--blue); border-color: #B5D4F4; }
+  .seg-swatches { display: flex; gap: 7px; flex-wrap: wrap; margin-top: 6px; }
+  .swatch { width: 28px; height: 28px; border-radius: 7px; cursor: pointer; border: 2px solid transparent; transition: border-color 0.15s; }
+  .swatch.on { border-color: var(--text); }
+  .badge-picker { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 6px; }
+  .badge-opt { padding: 5px 12px; font-size: 12px; font-weight: 600; border-radius: 10px; cursor: pointer; border: none; transition: outline 0.1s; }
+  .badge-opt.on { outline: 2px solid var(--text); }
+  .search-row { display: flex; gap: 8px; margin-top: 5px; }
+  .search-results { border: 1px solid var(--border); border-radius: var(--radius-sm); overflow: hidden; margin-top: 6px; display: none; }
+  .search-result { display: flex; align-items: center; gap: 10px; padding: 10px 12px; cursor: pointer; border-bottom: 0.5px solid var(--border); }
+  .search-result:last-child { border-bottom: none; }
+  .search-result:active { background: var(--bg); }
+  .sel-place { display: none; margin-top: 6px; padding: 8px 11px; background: var(--blue-bg); border-radius: var(--radius-sm); font-size: 12px; color: var(--blue); font-weight: 500; }
+
+  /* Sync screen */
+  .full-screen { position: fixed; inset: 0; background: var(--card); display: none; flex-direction: column; align-items: center; justify-content: center; padding: 32px; z-index: 300; }
+  .full-screen.open { display: flex; }
+  .code-box { font-size: 32px; font-weight: 700; letter-spacing: 10px; color: var(--text); background: var(--bg); padding: 18px 28px; border-radius: var(--radius); margin: 18px 0; font-family: 'Courier New', monospace; }
+  .sync-status { font-size: 13px; color: var(--text3); margin-top: 8px; }
+
+
+  .note-cat-btn { padding: 5px 13px; font-size: 12px; font-weight: 600; border-radius: 20px; border: 1px solid var(--border2); background: var(--bg); color: var(--text2); cursor: pointer; white-space: nowrap; font-family: inherit; }
+  .note-cat-btn.on { background: var(--text); color: var(--card); border-color: var(--text); }
+  .note-card { background: var(--card); border-radius: var(--radius); border: 0.5px solid var(--border); margin-bottom: 8px; padding: 13px; position: relative; }
+  .note-card:hover .note-acts { opacity: 1; }
+  .note-acts { position: absolute; top: 10px; right: 10px; display: flex; gap: 3px; opacity: 0; transition: opacity 0.15s; }
+  .note-cat-tag { display: inline-flex; align-items: center; gap: 4px; font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 10px; margin-bottom: 7px; }
+  .note-title { font-size: 14px; font-weight: 700; color: var(--text); margin-bottom: 4px; }
+  .note-body { font-size: 13px; color: var(--text2); line-height: 1.6; white-space: pre-wrap; }
+  .note-map { display: inline-flex; align-items: center; gap: 4px; font-size: 11px; color: #fff; padding: 3px 9px; border-radius: 20px; background: var(--gmap); text-decoration: none; margin-top: 7px; font-weight: 600; border: none; cursor: pointer; }
+  .note-day-tag { font-size: 11px; color: var(--text3); margin-top: 6px; }
+  .ai-paste-area { width: 100%; min-height: 120px; padding: 12px; font-size: 13px; border: 1.5px dashed var(--border2); border-radius: var(--radius-sm); background: var(--bg); color: var(--text); font-family: inherit; resize: vertical; line-height: 1.6; }
+  .ai-paste-area:focus { outline: none; border-color: var(--blue); }
+  .ai-result-card { background: var(--bg); border-radius: var(--radius-sm); padding: 12px; margin-top: 10px; border: 1px solid var(--border2); font-size: 13px; color: var(--text2); line-height: 1.6; min-height: 60px; white-space: pre-wrap; }
+  .ai-loading { display: flex; align-items: center; gap: 8px; color: var(--text3); font-size: 13px; padding: 16px 12px; }
+  /* Toast */
+  .toast { position: fixed; bottom: calc(env(safe-area-inset-bottom, 0) + 16px); left: 50%; transform: translateX(-50%) translateY(80px); background: rgba(0,0,0,0.8); color: #fff; padding: 10px 18px; border-radius: 20px; font-size: 13px; font-weight: 500; z-index: 999; transition: transform 0.3s; pointer-events: none; white-space: nowrap; }
+  .toast.show { transform: translateX(-50%) translateY(0); }
+
+  /* Loading */
+  .loading { display: flex; align-items: center; justify-content: center; padding: 40px; color: var(--text3); font-size: 14px; gap: 8px; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .spinner { width: 18px; height: 18px; border: 2px solid var(--border); border-top-color: var(--blue); border-radius: 50%; animation: spin 0.6s linear infinite; }
+</style>
+
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#1c1c1e" media="(prefers-color-scheme: dark)">
+<link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='22' fill='%23185FA5'/><text y='.9em' font-size='75' x='12'>🎵</text></svg>">
+<!-- Tabler Icons -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.0.0/tabler-icons.min.css">
+</head>
+<body>
+
+<div class="app">
+  <!-- Header -->
+  <div class="hdr">
+    <div class="hdr-inner">
+      <div class="hdr-top">
+        <span class="hdr-title" id="app-title">🎵 旅遊規劃</span>
+        <button class="sync-btn" onclick="openSync()">
+          <span class="sync-dot" id="sync-dot"></span>
+          <span id="room-code-display">----</span>
+          <i class="ti ti-users"></i>
+        </button>
+      </div>
+      <div class="tabs">
+        <button class="tab on" onclick="switchTab('itinerary',this)"><i class="ti ti-calendar"></i> 行程</button>
+        <button class="tab" onclick="switchTab('remind',this)"><i class="ti ti-bell"></i> 提醒</button>
+        <button class="tab" onclick="switchTab('accom',this)"><i class="ti ti-building"></i> 住宿</button>
+        <button class="tab" onclick="switchTab('pack',this)"><i class="ti ti-backpack"></i> 行李</button>
+        <button class="tab" onclick="switchTab('notes',this)"><i class="ti ti-notebook"></i> 筆記</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Content -->
+  <div class="content">
+    <div id="tp-itinerary" class="tab-page on">
+      <div class="sec-label">每日行程</div>
+      <div id="days-list"><div class="loading"><div class="spinner"></div> 載入中…</div></div>
+      <button class="add-day-btn" onclick="openAddDay(null)"><i class="ti ti-plus"></i> 新增一天</button>
+    </div>
+    <div id="tp-remind" class="tab-page">
+      <div class="sec-label">提醒事項</div>
+      <div id="remind-list"></div>
+      <button class="add-day-btn" onclick="openAddRemind(null)"><i class="ti ti-plus"></i> 新增提醒</button>
+    </div>
+    <div id="tp-accom" class="tab-page">
+      <div class="sec-label">住宿</div>
+      <div id="accom-list"></div>
+      <button class="add-day-btn" onclick="openAddAccom(null)"><i class="ti ti-plus"></i> 新增住宿</button>
+      <div class="sec-label" style="margin-top:14px">行李寄放</div>
+      <div id="luggage-list"></div>
+      <button class="add-day-btn" onclick="openAddLuggage(null)"><i class="ti ti-plus"></i> 新增寄放地點</button>
+    </div>
+    <div id="tp-pack" class="tab-page">
+      <div class="sec-label">行李清單</div>
+      <div id="pack-list"></div>
+      <button class="add-day-btn" onclick="openModal('modal-pack')"><i class="ti ti-plus"></i> 新增物品</button>    </div>
+    <div id="tp-notes" class="tab-page">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+        <div class="sec-label" style="margin:0">筆記 &amp; 想去清單</div>
+        <button onclick="openAIPaste()" style="display:flex;align-items:center;gap:5px;padding:6px 12px;background:linear-gradient(135deg,#185FA5,#534AB7);color:#fff;border:none;border-radius:20px;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit"><i class="ti ti-sparkles"></i> AI 整理貼上</button>
+      </div>
+      <div style="display:flex;gap:6px;margin-bottom:10px;overflow-x:auto;padding-bottom:2px" id="note-cat-tabs">
+        <button class="note-cat-btn on" onclick="filterNotes('all',this)">全部</button>
+        <button class="note-cat-btn" onclick="filterNotes('food',this)">🍜 吃</button>
+        <button class="note-cat-btn" onclick="filterNotes('shop',this)">🛍 買</button>
+        <button class="note-cat-btn" onclick="filterNotes('place',this)">📍 逛</button>
+        <button class="note-cat-btn" onclick="filterNotes('memo',this)">📝 備忘</button>
+      </div>
+      <div id="notes-list"></div>
+      <button class="add-day-btn" onclick="openAddNote(null)"><i class="ti ti-plus"></i> 新增筆記</button>
+    </div>
+  </div>
+</div>
+
+<!-- Sync Screen -->
+<div class="full-screen" id="sync-screen">
+  <div style="text-align:center;width:100%;max-width:300px">
+    <div style="width:60px;height:60px;background:var(--green-bg);border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 16px">
+      <i class="ti ti-users" style="font-size:28px;color:var(--green)"></i>
+    </div>
+    <h2 style="font-size:20px;font-weight:700;margin-bottom:6px">分享旅程</h2>
+    <p style="font-size:14px;color:var(--text2);margin-bottom:4px">把房間碼傳給旅伴</p>
+    <p style="font-size:13px;color:var(--text3);margin-bottom:0">對方輸入後即時同步所有資料</p>
+    <div class="code-box" id="sync-code-display">----</div>
+    <div class="sync-status" id="sync-status-text">連線中…</div>
+    <button onclick="copyRoomCode()" style="width:100%;padding:14px;background:var(--blue);color:#fff;border:none;border-radius:var(--radius-sm);font-size:15px;font-weight:700;cursor:pointer;margin-top:18px;font-family:inherit">
+      <i class="ti ti-copy"></i> 複製房間碼
+    </button>
+    <div style="margin:12px 0;display:flex;align-items:center;gap:8px"><div style="flex:1;height:1px;background:var(--border)"></div><span style="font-size:12px;color:var(--text3)">或</span><div style="flex:1;height:1px;background:var(--border)"></div></div>
+    <input type="text" id="join-input" placeholder="輸入旅伴的房間碼" style="text-align:center;letter-spacing:5px;font-size:18px;font-weight:700;margin-bottom:10px">
+    <button onclick="joinRoom()" style="width:100%;padding:12px;background:transparent;color:var(--text2);border:1px solid var(--border2);border-radius:var(--radius-sm);font-size:14px;cursor:pointer;font-family:inherit">加入旅程</button>
+    <button onclick="closeSync()" style="width:100%;padding:12px;background:transparent;color:var(--text3);border:none;font-size:14px;cursor:pointer;margin-top:8px;font-family:inherit">關閉</button>
+  </div>
+</div>
+
+<!-- Add Day Modal -->
+<div class="modal-overlay" id="modal-day" onclick="overlayClose(event,'modal-day')">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <h3 id="day-modal-title">新增一天</h3>
+    <label class="form-label">日期</label>
+    <input type="text" id="d-date" placeholder="例：5/21 (四)">
+    <label class="form-label">標題</label>
+    <input type="text" id="d-title" placeholder="例：抵達東京">
+    <label class="form-label">副標題</label>
+    <input type="text" id="d-sub" placeholder="例：成田 → 上野">
+    <label class="form-label">標籤</label>
+    <div class="badge-picker" id="badge-picker">
+      <button class="badge-opt b-blue" onclick="toggleBadge(this,'電車')">電車</button>
+      <button class="badge-opt b-green" onclick="toggleBadge(this,'飯店')">飯店</button>
+      <button class="badge-opt b-pink" onclick="toggleBadge(this,'活動')">活動</button>
+      <button class="badge-opt b-amber" onclick="toggleBadge(this,'寄物')">寄物</button>
+      <button class="badge-opt b-purple" onclick="toggleBadge(this,'新幹線')">新幹線</button>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-danger" id="day-del-btn" style="display:none" onclick="deleteDay()"><i class="ti ti-trash"></i></button>
+      <button class="btn-ghost" onclick="closeModal('modal-day')">取消</button>
+      <button class="btn-primary" onclick="saveDay()">儲存</button>
+    </div>
+  </div>
+</div>
+
+<!-- Add Event Modal -->
+<div class="modal-overlay" id="modal-event" onclick="overlayClose(event,'modal-event')">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <h3 id="ev-modal-title">新增項目</h3>
+    <label class="form-label">類型</label>
+    <div class="type-btns">
+      <button class="type-btn on" id="etype-normal" onclick="setEvType('normal')"><i class="ti ti-map-pin"></i> 活動</button>
+      <button class="type-btn" id="etype-train" onclick="setEvType('train')"><i class="ti ti-train"></i> 搭車</button>
+      <button class="type-btn" id="etype-flex" onclick="setEvType('flex')"><i class="ti ti-sparkles"></i> 彈性時間</button>
+    </div>
+
+    <div id="ev-normal-fields">
+      <label class="form-label">時間</label>
+      <input type="text" id="ev-time" placeholder="例：09:30">
+      <label class="form-label">名稱</label>
+      <input type="text" id="ev-title" placeholder="例：淺草寺">
+      <label class="form-label">備註</label>
+      <input type="text" id="ev-note" placeholder="選填">
+      <label class="form-label">搜尋 Google Maps 地點</label>
+      <div class="search-row">
+        <input type="text" id="ev-place-q" placeholder="搜尋景點 / 車站" style="flex:1">
+        <button class="btn-ghost" style="padding:10px 14px;white-space:nowrap" onclick="searchPlace('ev')">搜尋</button>
+      </div>
+      <div id="ev-place-results" class="search-results"></div>
+      <div id="ev-place-sel" class="sel-place"></div>
+    </div>
+
+    <div id="ev-train-fields" style="display:none">
+      <div class="row2" style="margin-top:10px">
+        <div><label class="form-label" style="margin-top:0">出發時間</label><input type="text" id="tr-depart" placeholder="14:33"></div>
+        <div><label class="form-label" style="margin-top:0">抵達時間</label><input type="text" id="tr-arrive" placeholder="17:04"></div>
+      </div>
+      <div class="row2">
+        <div><label class="form-label">出發站</label><input type="text" id="tr-from" placeholder="東京站"></div>
+        <div><label class="form-label">抵達站</label><input type="text" id="tr-to" placeholder="京都站"></div>
+      </div>
+      <label class="form-label">車種</label>
+      <input type="text" id="tr-type" placeholder="例：Skyliner / のぞみ 新幹線">
+      <label class="form-label">最晚幾分鐘前到站</label>
+      <div style="display:flex;align-items:center;gap:10px;margin-top:6px">
+        <input type="text" id="tr-warn" placeholder="20" style="width:70px">
+        <span style="font-size:13px;color:var(--text2)">分鐘前到站（會顯示提醒）</span>
+      </div>
+    </div>
+
+    <div id="ev-flex-fields" style="display:none">
+      <label class="form-label">時間段</label>
+      <input type="text" id="fl-time" placeholder="例：15:00–17:00 或「活動後」">
+      <label class="form-label">標題</label>
+      <input type="text" id="fl-title" placeholder="例：如果還有時間…">
+      <label class="form-label">可去地點（每行一個）</label>
+      <textarea id="fl-items" rows="3" placeholder="上野公園&#10;阿美橫丁&#10;秋葉原" style="resize:none"></textarea>
+      <label class="form-label">顏色</label>
+      <div class="seg-swatches" id="seg-swatches">
+        <div class="swatch on" style="background:#9FE1CB" data-c="#9FE1CB" data-t="#085041" data-b="#5DCAA5" onclick="pickColor(this)"></div>
+        <div class="swatch" style="background:#FAC775" data-c="#FAC775" data-t="#633806" data-b="#EF9F27" onclick="pickColor(this)"></div>
+        <div class="swatch" style="background:#CECBF6" data-c="#CECBF6" data-t="#26215C" data-b="#7F77DD" onclick="pickColor(this)"></div>
+        <div class="swatch" style="background:#F4C0D1" data-c="#F4C0D1" data-t="#4B1528" data-b="#D4537E" onclick="pickColor(this)"></div>
+        <div class="swatch" style="background:#B5D4F4" data-c="#B5D4F4" data-t="#042C53" data-b="#378ADD" onclick="pickColor(this)"></div>
+        <div class="swatch" style="background:#C0DD97" data-c="#C0DD97" data-t="#173404" data-b="#639922" onclick="pickColor(this)"></div>
+      </div>
+    </div>
+
+    <div class="modal-actions">
+      <button class="btn-danger" id="ev-del-btn" style="display:none" onclick="deleteEvent()"><i class="ti ti-trash"></i></button>
+      <button class="btn-ghost" onclick="closeModal('modal-event')">取消</button>
+      <button class="btn-primary" onclick="saveEvent()">儲存</button>
+    </div>
+  </div>
+</div>
+
+<!-- Add Remind Modal -->
+<div class="modal-overlay" id="modal-remind" onclick="overlayClose(event,'modal-remind')">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <h3 id="remind-modal-title">新增提醒</h3>
+    <label class="form-label">標題</label>
+    <input type="text" id="r-title" placeholder="例：確認 TJ 票券">
+    <label class="form-label">說明</label>
+    <input type="text" id="r-sub" placeholder="說明">
+    <label class="form-label">提醒日期</label>
+    <input type="text" id="r-date" placeholder="例：5月 15 日">
+    <label class="form-label">類型</label>
+    <select id="r-type">
+      <option value="ticket">票券 / 搶票</option>
+      <option value="train">交通 / 劃位</option>
+      <option value="hotel">住宿確認</option>
+      <option value="other">其他</option>
+    </select>
+    <div class="modal-actions">
+      <button class="btn-danger" id="remind-del-btn" style="display:none" onclick="deleteRemind()"><i class="ti ti-trash"></i></button>
+      <button class="btn-ghost" onclick="closeModal('modal-remind')">取消</button>
+      <button class="btn-primary" onclick="saveRemind()">儲存</button>
+    </div>
+  </div>
+</div>
+
+<!-- Add Accom Modal -->
+<div class="modal-overlay" id="modal-accom" onclick="overlayClose(event,'modal-accom')">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <h3 id="accom-modal-title">新增住宿</h3>
+    <label class="form-label">住宿名稱</label>
+    <input type="text" id="ac-name" placeholder="飯店名稱">
+    <div class="row2">
+      <div><label class="form-label">入住日</label><input type="text" id="ac-in" placeholder="5/21 (四)"></div>
+      <div><label class="form-label">退房日</label><input type="text" id="ac-out" placeholder="5/22 (五)"></div>
+    </div>
+    <label class="form-label">搜尋 Google Maps</label>
+    <div class="search-row">
+      <input type="text" id="ac-place-q" placeholder="搜尋飯店" style="flex:1">
+      <button class="btn-ghost" style="padding:10px 14px" onclick="searchPlace('ac')">搜尋</button>
+    </div>
+    <div id="ac-place-results" class="search-results"></div>
+    <div id="ac-place-sel" class="sel-place"></div>
+    <label class="form-label">狀態</label>
+    <select id="ac-status"><option value="ok">已確認</option><option value="warn">待確認</option></select>
+    <div class="modal-actions">
+      <button class="btn-danger" id="accom-del-btn" style="display:none" onclick="deleteAccom()"><i class="ti ti-trash"></i></button>
+      <button class="btn-ghost" onclick="closeModal('modal-accom')">取消</button>
+      <button class="btn-primary" onclick="saveAccom()">儲存</button>
+    </div>
+  </div>
+</div>
+
+<!-- Add Luggage Modal -->
+<div class="modal-overlay" id="modal-luggage" onclick="overlayClose(event,'modal-luggage')">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <h3>新增寄放地點</h3>
+    <label class="form-label">地點名稱</label>
+    <input type="text" id="lg-name" placeholder="例：上野站 Coin Locker">
+    <label class="form-label">說明</label>
+    <input type="text" id="lg-note" placeholder="例：5/25 出發前寄放大行李">
+    <label class="form-label">搜尋 Google Maps</label>
+    <div class="search-row">
+      <input type="text" id="lg-place-q" placeholder="搜尋地點" style="flex:1">
+      <button class="btn-ghost" style="padding:10px 14px" onclick="searchPlace('lg')">搜尋</button>
+    </div>
+    <div id="lg-place-results" class="search-results"></div>
+    <div id="lg-place-sel" class="sel-place"></div>
+    <div class="modal-actions">
+      <button class="btn-ghost" onclick="closeModal('modal-luggage')">取消</button>
+      <button class="btn-primary" onclick="saveLuggage()">儲存</button>
+    </div>
+  </div>
+</div>
+
+<!-- Add Pack Modal -->
+<div class="modal-overlay" id="modal-pack" onclick="overlayClose(event,'modal-pack')">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <h3>新增行李物品</h3>
+    <label class="form-label">物品名稱</label>
+    <input type="text" id="pk-name" placeholder="例：護照">
+    <label class="form-label">負責人</label>
+    <select id="pk-who">
+      <option value="a">旅伴 A</option>
+      <option value="b">旅伴 B</option>
+      <option value="both">兩人都帶</option>
+    </select>
+    <label class="form-label">分類</label>
+    <select id="pk-cat">
+      <option>證件 &amp; 票券</option>
+      <option>電子產品</option>
+      <option>藥品 &amp; 日用品</option>
+      <option>衣物</option>
+      <option>其他</option>
+    </select>
+    <div class="modal-actions">
+      <button class="btn-ghost" onclick="closeModal('modal-pack')">取消</button>
+      <button class="btn-primary" onclick="savePack()">儲存</button>
+    </div>
+  </div>
+</div>
+
+<!-- Add Note Modal -->
+<div class="modal-overlay" id="modal-note" onclick="overlayClose(event,'modal-note')">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <h3 id="note-modal-title">新增筆記</h3>
+    <label class="form-label">分類</label>
+    <div style="display:flex;gap:6px;margin-top:5px;margin-bottom:2px">
+      <button class="note-cat-btn on" id="ncat-food" onclick="setNoteCat('food',this)">🍜 吃</button>
+      <button class="note-cat-btn" id="ncat-shop" onclick="setNoteCat('shop',this)">🛍 買</button>
+      <button class="note-cat-btn" id="ncat-place" onclick="setNoteCat('place',this)">📍 逛</button>
+      <button class="note-cat-btn" id="ncat-memo" onclick="setNoteCat('memo',this)">📝 備忘</button>
+    </div>
+    <label class="form-label">標題</label>
+    <input type="text" id="n-title" placeholder="例：上野阿美橫丁 海鮮丼">
+    <label class="form-label">內容 / 說明</label>
+    <textarea id="n-body" rows="3" style="resize:none" placeholder="地址、開放時間、推薦品項…"></textarea>
+    <label class="form-label">相關日期（選填）</label>
+    <input type="text" id="n-day" placeholder="例：5/24 熱海">
+    <label class="form-label">地點搜尋（選填）</label>
+    <div class="search-row">
+      <input type="text" id="n-place-q" placeholder="搜尋地點" style="flex:1">
+      <button class="btn-ghost" style="padding:10px 14px" onclick="searchPlace('n')">搜尋</button>
+    </div>
+    <div id="n-place-results" class="search-results"></div>
+    <div id="n-place-sel" class="sel-place"></div>
+    <div class="modal-actions">
+      <button class="btn-danger" id="note-del-btn" style="display:none" onclick="deleteNote()"><i class="ti ti-trash"></i></button>
+      <button class="btn-ghost" onclick="closeModal('modal-note')">取消</button>
+      <button class="btn-primary" onclick="saveNote()">儲存</button>
+    </div>
+  </div>
+</div>
+
+<!-- AI Paste Modal -->
+<div class="modal-overlay" id="modal-ai" onclick="overlayClose(event,'modal-ai')">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <h3><i class="ti ti-sparkles" style="color:#534AB7"></i> AI 整理貼上</h3>
+    <p style="font-size:13px;color:var(--text2);margin-bottom:12px">把從 LINE、IG、Google 複製的文字貼進來，AI 自動幫你整理成筆記或行程</p>
+    <textarea class="ai-paste-area" id="ai-input" placeholder="貼上任何內容，例如：&#10;&#10;「上野 阿美橫丁 推薦海鮮丼，早上11點開，周一公休，約1000円」&#10;&#10;「熱海 MOA美術館 早上9點到下午4點，門票 1600円」&#10;&#10;或整段社群貼文都可以！"></textarea>
+    <div id="ai-result" style="display:none">
+      <div style="font-size:12px;font-weight:600;color:var(--text2);margin:12px 0 6px">AI 整理結果：</div>
+      <div class="ai-result-card" id="ai-result-content"></div>
+    </div>
+    <div class="modal-actions" style="flex-wrap:wrap;gap:8px">
+      <button class="btn-ghost" onclick="closeModal('modal-ai')" style="flex:none">取消</button>
+      <button class="btn-ghost" id="ai-save-notes-btn" style="display:none;flex:none" onclick="saveAINotes()"><i class="ti ti-notebook"></i> 存到筆記</button>
+      <button class="btn-primary" id="ai-parse-btn" onclick="runAI()"><i class="ti ti-sparkles"></i> 整理</button>
+    </div>
+  </div>
+</div>
+<script>
+// PWA Service Worker
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    // Inline service worker via blob
+    const swCode = `
+const CACHE = 'travel-v1';
+const ASSETS = [self.location.pathname.replace('sw.js',''), 'https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.0.0/tabler-icons.min.css'];
+self.addEventListener('install', e => e.waitUntil(caches.open(CACHE).then(c => c.addAll(ASSETS).catch(()=>{}))));
+self.addEventListener('fetch', e => {
+  if (e.request.url.includes('firebase') || e.request.url.includes('anthropic')) return;
+  e.respondWith(caches.match(e.request).then(r => r || fetch(e.request).then(res => { if(res.ok && e.request.method==='GET'){const c=res.clone();caches.open(CACHE).then(cache=>cache.put(e.request,c));} return res; }).catch(()=>caches.match('/'))));
+});
+self.addEventListener('push', e => {
+  const d = e.data ? e.data.json() : {};
+  e.waitUntil(self.registration.showNotification(d.title||'旅遊提醒', { body: d.body||'', icon: '/icon.png', badge: '/icon.png' }));
+});`;
+    const blob = new Blob([swCode], {type: 'application/javascript'});
+    const url = URL.createObjectURL(blob);
+    navigator.serviceWorker.register(url).then(reg => {
+      console.log('SW registered');
+      // Check reminders daily
+      checkReminders(reg);
+    }).catch(e => console.log('SW failed', e));
+  });
+}
+
+function checkReminders(reg) {
+  // Simple client-side reminder check
+  if (!G || !G.reminders) return;
+  var today = new Date();
+  G.reminders.forEach(r => {
+    if (r.done) return;
+    // parse date like "5月 21 日"
+    var m = r.date.match(/(\d+)月\s*(\d+)/);
+    if (!m) return;
+    var rDate = new Date(today.getFullYear(), parseInt(m[1])-1, parseInt(m[2]));
+    var diff = Math.floor((rDate - today) / 86400000);
+    if (diff === 0) {
+      toast('📅 今天要做：' + r.title);
+    } else if (diff === 1) {
+      toast('⏰ 明天提醒：' + r.title);
+    }
+  });
+}
+</script>
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<script>
+// ─── State ───────────────────────────────────────────────
+var G = {
+  roomCode: '',
+  days: [], reminders: [], accom: [], luggage: [], packs: {},
+  selPlace: { ev: null, ac: null, lg: null, n: null },
+  curDay: null, evType: 'normal',
+  segColor: { c: '#9FE1CB', t: '#085041', b: '#5DCAA5' },
+  selBadges: []
+};
+var editDayIdx = null, editEvIdx = null, editRemindIdx = null, editAccomIdx = null;
+var firebaseConnected = false;
+
+// ─── Initial Data ────────────────────────────────────────
+var INIT_DATA = {
+  days: [
+    { date: '5/21 (四)', title: '抵達東京', sub: '成田機場 → 上野', badges: ['電車', '飯店'], events: [
+      { type: 'train', time: '15:30', depart: '15:30', arrive: '約 19:55', from: '成田機場', to: '上野', trainType: 'Skyliner 特急（直達）', warnMin: 20, mapUrl: 'https://www.google.com/maps/search/?api=1&query=成田空港第1ターミナル駅' },
+      { type: 'normal', time: '20:30', title: 'Grids Tokyo Ueno Check-in', note: '台東區上野（Taito City）', mapUrl: 'https://www.google.com/maps/dir/?api=1&destination=Grids+Tokyo+Ueno+Hotel+Hostel&travelmode=transit' },
+      { type: 'flex', time: '21:00', flexTime: '21:00 之後', flexTitle: '抵達後如果還有精神', flexItems: ['アメ横丁夜逛', '全家 / 7-11 補給零食', '上野公園夜景散步'], segColor: { c: '#9FE1CB', t: '#085041', b: '#5DCAA5' } }
+    ]},
+    { date: '5/22 (五)', title: 'アイナナ 活動日', sub: '上野', badges: ['活動', '飯店'], events: [
+      { type: 'normal', time: '', title: 'アイドリッシュセブン 活動', note: '待補充：確認時間與場地地址', mapUrl: '' },
+      { type: 'flex', time: '', flexTime: '活動前後', flexTitle: '上野周邊空檔', flexItems: ['上野動物園', '國立西洋美術館', '阿美橫丁購物', '上野恩賜公園'], segColor: { c: '#F4C0D1', t: '#4B1528', b: '#D4537E' } },
+      { type: 'normal', time: '', title: 'Grids Tokyo Ueno 住宿', note: '台東區上野（連住）', mapUrl: 'https://www.google.com/maps/dir/?api=1&destination=Grids+Tokyo+Ueno+Hotel+Hostel&travelmode=transit' }
+    ]},
+    { date: '5/23 (六)', title: 'TJ 晚場', sub: '上野 → 船橋', badges: ['活動'], events: [
+      { type: 'normal', time: '', title: 'TJ 晚場活動', note: '待補充：確認場地與入場時間', mapUrl: '' },
+      { type: 'train', time: '', depart: '', arrive: '', from: '上野', to: '船橋', trainType: 'JR 常磐線 / 京成線', warnMin: 15, mapUrl: 'https://www.google.com/maps/search/?api=1&query=上野駅' },
+      { type: 'normal', time: '', title: '日出旅館 Check-in', note: '船橋，千葉縣', mapUrl: 'https://www.google.com/maps/search/?api=1&query=日出旅館+船橋+千葉' }
+    ]},
+    { date: '5/24 (日)', title: 'TJ 午場', sub: '船橋 → 熱海', badges: ['活動', '新幹線'], events: [
+      { type: 'normal', time: '', title: 'TJ 午場活動', note: '待補充：確認場地與入場時間', mapUrl: '' },
+      { type: 'train', time: '', depart: '', arrive: '', from: '東京 / 品川', to: '熱海', trainType: '東海道新幹線 こだま 或 踊り子特急', warnMin: 20, mapUrl: 'https://www.google.com/maps/search/?api=1&query=東京駅' },
+      { type: 'normal', time: '', title: '熱海飯店 Check-in', note: '⚠️ 待補充飯店名稱', mapUrl: 'https://www.google.com/maps/search/?api=1&query=熱海駅' }
+    ]},
+    { date: '5/25 (一)', title: '熱海 → 回東京', sub: '熱海 → 上野', badges: ['電車', '飯店'], events: [
+      { type: 'flex', time: '', flexTime: '上午', flexTitle: '熱海早上自由時間', flexItems: ['熱海海岸散步', 'MOA 美術館', '熱海溫泉浴', '熱海和菓子伴手禮'], segColor: { c: '#B5D4F4', t: '#042C53', b: '#378ADD' } },
+      { type: 'train', time: '', depart: '', arrive: '', from: '熱海', to: '上野', trainType: '東海道新幹線 / JR 特急', warnMin: 20, mapUrl: 'https://www.google.com/maps/search/?api=1&query=熱海駅' },
+      { type: 'normal', time: '', title: 'Grids Tokyo Ueno Check-in', note: '台東區上野（第三次入住）', mapUrl: 'https://www.google.com/maps/dir/?api=1&destination=Grids+Tokyo+Ueno+Hotel+Hostel&travelmode=transit' },
+      { type: 'flex', time: '', flexTime: '下午 / 晚上', flexTitle: '回上野後', flexItems: ['秋葉原掃貨', '御徒町藥妝', '上野動物園（若未去）'], segColor: { c: '#F4C0D1', t: '#4B1528', b: '#D4537E' } }
+    ]},
+    { date: '5/26 (二)', title: '龍宮城 FC 活動', sub: '目黑區 The Garden Hall', badges: ['活動'], events: [
+      { type: 'train', time: '', depart: '', arrive: '14:10 前', from: '上野', to: '目黑', trainType: '東京 Metro 日比谷線（直達）', warnMin: 20, mapUrl: 'https://www.google.com/maps/search/?api=1&query=上野駅' },
+      { type: 'normal', time: '14:30', title: '龍宮城 FC 活動', note: 'The Garden Hall，目黑區三田1-13-2', mapUrl: 'https://www.google.com/maps/dir/?api=1&destination=The+Garden+Hall+目黒&travelmode=transit' },
+      { type: 'flex', time: '', flexTime: '活動後', flexTitle: '目黑 / 中目黑順逛', flexItems: ['中目黑目黑川夜景', '蔦屋書店中目黑', '代官山 T-Site'], segColor: { c: '#9FE1CB', t: '#085041', b: '#5DCAA5' } }
+    ]},
+    { date: '5/27 (三)', title: '回台灣', sub: '羽田機場', badges: ['電車'], events: [
+      { type: 'train', time: '03:30', depart: '03:30', arrive: '約 04:30', from: '上野', to: '羽田機場', trainType: '京急線 / 東京單軌電車', warnMin: 15, mapUrl: 'https://www.google.com/maps/search/?api=1&query=上野駅' },
+      { type: 'normal', time: '05:25', title: '起飛 — 羽田機場', note: '5:25 起飛 → 抵達 8:00（確認航班編號）', mapUrl: 'https://www.google.com/maps/dir/?api=1&destination=羽田空港&travelmode=transit' }
+    ]}
+  ],
+  reminders: [
+    { title: 'TJ 5/23 晚場票券確認', sub: '確認入場時間、場地地址、票種', date: '5月 15 日', type: 'ticket', done: false },
+    { title: 'TJ 5/24 午場票券確認', sub: '確認入場時間與場地', date: '5月 15 日', type: 'ticket', done: false },
+    { title: 'アイナナ 5/22 活動資訊', sub: '確認時間地點與入場方式', date: '5月 15 日', type: 'ticket', done: false },
+    { title: '龍宮城 FC 活動資訊', sub: '5/26 14:30 The Garden Hall，確認入場方式', date: '5月 18 日', type: 'ticket', done: false },
+    { title: '熱海飯店補充名稱', sub: '5/24 住宿待確認', date: '5月 10 日', type: 'hotel', done: false },
+    { title: '羽田機場航班確認', sub: '5/27 5:25 起飛，確認航班編號', date: '5月 15 日', type: 'train', done: false }
+  ],
+  accom: [
+    { name: 'Grids Tokyo Ueno Hotel & Hostel', checkIn: '5/21 (四)', checkOut: '5/23 (六)', status: 'ok', mapUrl: 'https://www.google.com/maps/dir/?api=1&destination=Grids+Tokyo+Ueno+Hotel+Hostel&travelmode=transit' },
+    { name: '日出旅館', checkIn: '5/23 (六)', checkOut: '5/24 (日)', status: 'ok', mapUrl: 'https://www.google.com/maps/search/?api=1&query=日出旅館+船橋+千葉' },
+    { name: '熱海住宿（待補充）', checkIn: '5/24 (日)', checkOut: '5/25 (一)', status: 'warn', mapUrl: 'https://www.google.com/maps/search/?api=1&query=熱海駅' },
+    { name: 'Grids Tokyo Ueno Hotel & Hostel', checkIn: '5/25 (一)', checkOut: '5/27 (三)', status: 'ok', mapUrl: 'https://www.google.com/maps/dir/?api=1&destination=Grids+Tokyo+Ueno+Hotel+Hostel&travelmode=transit' }
+  ],
+  luggage: [],
+  packs: {
+    '證件 & 票券': [
+      { name: '護照', who: 'a', done: false }, { name: '護照', who: 'b', done: false },
+      { name: 'TJ 票券', who: 'both', done: false }, { name: '龍宮城 FC 票券', who: 'both', done: false },
+      { name: 'アイナナ 票券', who: 'both', done: false }
+    ],
+    '電子產品': [
+      { name: '轉接頭（日本 A 型）', who: 'a', done: false },
+      { name: '行動電源', who: 'b', done: false },
+      { name: '相機 + 記憶卡', who: 'a', done: false }
+    ],
+    '藥品 & 日用品': [
+      { name: '腸胃藥 / 止痛藥', who: 'a', done: false },
+      { name: '防曬乳', who: 'b', done: false },
+      { name: '折疊傘', who: 'both', done: false }
+    ]
+  }
+};
+
+// ─── Firebase ────────────────────────────────────────────
+var FIREBASE_KEY = 'data';
+var firebaseSaveTimer = null;
+
+function getFirebaseEndpoint() {
+  var code = G.roomCode || 'default';
+  return FIREBASE_URL.replace(/\/$/, '') + '/trips/' + code + '/' + FIREBASE_KEY + '.json';
+}
+
+async function firebaseSave() {
+  if (!FIREBASE_URL || FIREBASE_URL === 'YOUR_FIREBASE_URL') return;
+  try {
+    var payload = { days: G.days, reminders: G.reminders, accom: G.accom, luggage: G.luggage, packs: G.packs, notes: G.notes || [] };
+    await fetch(getFirebaseEndpoint(), { method: 'PUT', body: JSON.stringify(payload) });
+  } catch (e) { console.warn('Firebase save failed', e); }
+}
+
+async function firebaseLoad(code) {
+  if (!FIREBASE_URL || FIREBASE_URL === 'YOUR_FIREBASE_URL') return false;
+  try {
+    var res = await fetch(FIREBASE_URL.replace(/\/$/, '') + '/trips/' + code + '/' + FIREBASE_KEY + '.json');
+    var data = await res.json();
+    if (data) {
+      G.days = data.days || [];
+      G.reminders = data.reminders || [];
+      G.accom = data.accom || [];
+      G.luggage = data.luggage || [];
+      G.packs = data.packs || {};
+      G.notes = data.notes || [];
+      return true;
+    }
+  } catch (e) { console.warn('Firebase load failed', e); }
+  return false;
+}
+
+function scheduleSave() {
+  clearTimeout(firebaseSaveTimer);
+  firebaseSaveTimer = setTimeout(firebaseSave, 800);
+  // Also save to localStorage as backup
+  try { localStorage.setItem('travel_' + G.roomCode, JSON.stringify({ days: G.days, reminders: G.reminders, accom: G.accom, luggage: G.luggage, packs: G.packs, notes: G.notes || [] })); } catch(e) {}
+}
+
+function loadFromLocal(code) {
+  try {
+    var raw = localStorage.getItem('travel_' + code);
+    if (raw) { var d = JSON.parse(raw); Object.assign(G, d); return true; }
+  } catch(e) {}
+  return false;
+}
+
+// ─── Room / Sync ─────────────────────────────────────────
+function generateCode() { return Math.random().toString(36).substring(2, 6).toUpperCase(); }
+
+async function initRoom() {
+  var saved = localStorage.getItem('travel_room_code');
+  if (saved) {
+    G.roomCode = saved;
+    var loaded = await firebaseLoad(G.roomCode);
+    if (!loaded) loadFromLocal(G.roomCode);
+  } else {
+    G.roomCode = generateCode();
+    localStorage.setItem('travel_room_code', G.roomCode);
+    // Load initial data
+    Object.assign(G, JSON.parse(JSON.stringify(INIT_DATA)));
+    scheduleSave();
+  }
+  updateRoomDisplay();
+  renderAll();
+}
+
+function updateRoomDisplay() {
+  document.getElementById('room-code-display').textContent = G.roomCode;
+  document.getElementById('sync-code-display').textContent = G.roomCode;
+  var dot = document.getElementById('sync-dot');
+  dot.className = 'sync-dot' + (FIREBASE_URL !== 'YOUR_FIREBASE_URL' ? '' : ' offline');
+  document.getElementById('sync-status-text').textContent = FIREBASE_URL !== 'YOUR_FIREBASE_URL' ? '已連線 Firebase — 即時同步' : '⚠️ 尚未設定 Firebase（僅本機儲存）';
+}
+
+async function joinRoom() {
+  var code = document.getElementById('join-input').value.trim().toUpperCase();
+  if (!code) { toast('請輸入房間碼'); return; }
+  G.roomCode = code;
+  localStorage.setItem('travel_room_code', code);
+  var loaded = await firebaseLoad(code);
+  if (!loaded) { loadFromLocal(code); }
+  updateRoomDisplay();
+  renderAll();
+  closeSync();
+  toast('已加入旅程 ' + code);
+}
+
+function copyRoomCode() {
+  if (navigator.clipboard) navigator.clipboard.writeText(G.roomCode);
+  toast('已複製房間碼 ' + G.roomCode);
+}
+
+function openSync() { document.getElementById('sync-screen').classList.add('open'); }
+function closeSync() { document.getElementById('sync-screen').classList.remove('open'); }
+
+// ─── UI Helpers ──────────────────────────────────────────
+function switchTab(name, el) {
+  document.querySelectorAll('.tab-page').forEach(p => p.classList.remove('on'));
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('on'));
+  document.getElementById('tp-' + name).classList.add('on');
+  el.classList.add('on');
+}
+
+function openModal(id) { document.getElementById(id).classList.add('open'); }
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+function overlayClose(e, id) { if (e.target === e.currentTarget) closeModal(id); }
+
+function toast(msg) {
+  var el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  setTimeout(() => el.classList.remove('show'), 2200);
+}
+
+function nav(e, url) {
+  e.preventDefault();
+  window.open(url, '_blank');
+}
+
+// ─── Rendering ───────────────────────────────────────────
+var DAY_COLORS = [
+  ['#E6F1FB','#185FA5'],['#FBEAF0','#993556'],['#FBEAF0','#72243E'],
+  ['#FBEAF0','#72243E'],['#E1F5EE','#0F6E56'],['#FBEAF0','#993556'],['#FAEEDA','#854F0B']
+];
+var BADGE_CLASS = { '電車': 'b-blue', '飯店': 'b-green', '活動': 'b-pink', '寄物': 'b-amber', '新幹線': 'b-purple' };
+var R_COL = {
+  ticket: ['#FAEEDA','#FAC775','#633806','#854F0B','#EF9F27'],
+  train: ['#E6F1FB','#B5D4F4','#0C447C','#185FA5','#378ADD'],
+  hotel: ['#E1F5EE','#9FE1CB','#04342C','#0F6E56','#5DCAA5'],
+  other: ['#EEEDFE','#CECBF6','#26215C','#534AB7','#7F77DD']
+};
+var R_ICON = { ticket: 'ti-ticket', train: 'ti-train', hotel: 'ti-building', other: 'ti-bell' };
+var PACK_ICONS = ['ti-id', 'ti-plug', 'ti-first-aid-kit', 'ti-shirt', 'ti-package'];
+
+function calcWarn(dep, mins) {
+  if (!dep || !mins) return '';
+  var p = dep.split(':');
+  if (p.length < 2) return '';
+  var h = parseInt(p[0]), m = parseInt(p[1]) - parseInt(mins);
+  while (m < 0) { m += 60; h--; }
+  if (h < 0) h += 24;
+  return h + ':' + (m < 10 ? '0' : '') + m;
+}
+
+function renderDays() {
+  var el = document.getElementById('days-list');
+  if (!G.days || !G.days.length) {
+    el.innerHTML = '<div style="text-align:center;padding:28px;font-size:14px;color:var(--text3)">尚無行程，點下方按鈕新增</div>';
+    return;
+  }
+  el.innerHTML = G.days.map((d, i) => {
+    var c = DAY_COLORS[i % DAY_COLORS.length];
+    var badges = (d.badges || []).map(b => `<span class="badge ${BADGE_CLASS[b] || 'b-blue'}">${b}</span>`).join('');
+    var events = (d.events || []).map((ev, ei) => {
+      var last = ei === d.events.length - 1;
+      var conn = last ? '' : `<div class="ev-conn" style="background:${c[1]}"></div>`;
+      var acts = `<div class="ev-acts"><button class="icon-btn" onclick="openAddEvent(${i},${ei},event)" aria-label="編輯"><i class="ti ti-edit"></i></button><button class="icon-btn red" onclick="quickDelEv(${i},${ei},event)" aria-label="刪除"><i class="ti ti-trash"></i></button></div>`;
+      var drag = `draggable="true" data-day="${i}" data-ev="${ei}" ondragstart="ds(event)" ondragover="do_(event)" ondrop="dd(event)" ondragleave="dl(event)"`;
+
+      if (ev.type === 'flex') {
+        var sc = ev.segColor || { c: '#9FE1CB', t: '#085041', b: '#5DCAA5' };
+        var tags = (ev.flexItems || []).map(it => `<span class="flex-tag" style="background:${sc.b}33;color:${sc.t}">${it}</span>`).join('');
+        return `<div class="ev-wrap" ${drag}><div class="ev"><div class="drag-handle"><i class="ti ti-grip-vertical"></i></div><div class="ev-time">${ev.time || ''}</div><div class="ev-line"><div class="ev-dot" style="background:${sc.b}"></div>${conn}</div><div class="ev-body"><div class="flex-seg" style="background:${sc.c}33;border-left-color:${sc.b}"><div class="flex-label" style="color:${sc.t}"><i class="ti ti-sparkles" style="font-size:11px"></i> ${ev.flexTitle}</div><div class="flex-tags">${tags}</div><div style="font-size:11px;color:${sc.t};margin-top:5px;opacity:.7">${ev.flexTime}</div></div></div>${acts}</div></div>`;
+      }
+      if (ev.type === 'train') {
+        var wt = ev.warnMin && ev.depart ? calcWarn(ev.depart, ev.warnMin) : '';
+        var warn = wt ? `<div class="warn-chip"><i class="ti ti-alarm" style="font-size:11px"></i> 最晚 ${wt} 到站（${ev.warnMin} 分前）</div>` : '';
+        var mapH = ev.mapUrl ? `<a class="map-btn" href="${ev.mapUrl}" onclick="nav(event,'${ev.mapUrl}')"><i class="ti ti-brand-google-maps"></i> 前往${ev.from}</a>` : '';
+        return `<div class="ev-wrap" ${drag}><div class="ev"><div class="drag-handle"><i class="ti ti-grip-vertical"></i></div><div class="ev-time" style="color:#185FA5;font-weight:700">${ev.depart || ''}</div><div class="ev-line"><div class="ev-dot" style="background:#378ADD"></div>${conn}</div><div class="ev-body"><div class="ev-title"><i class="ti ti-train" style="color:#185FA5;font-size:12px"></i> ${ev.trainType || ''}</div><div class="train-chip"><i class="ti ti-arrow-right" style="font-size:11px"></i> ${ev.from} → ${ev.to}${ev.arrive ? ` <b>抵達 ${ev.arrive}</b>` : ''}</div>${warn}${mapH}</div>${acts}</div></div>`;
+      }
+      var mapH = ev.mapUrl ? `<a class="map-btn" href="${ev.mapUrl}" onclick="nav(event,'${ev.mapUrl}')"><i class="ti ti-brand-google-maps"></i> 導航</a>` : '';
+      return `<div class="ev-wrap" ${drag}><div class="ev"><div class="drag-handle"><i class="ti ti-grip-vertical"></i></div><div class="ev-time">${ev.time || ''}</div><div class="ev-line"><div class="ev-dot" style="background:${c[1]}"></div>${conn}</div><div class="ev-body"><div class="ev-title">${ev.title}</div>${ev.note ? `<div class="ev-note">${ev.note}</div>` : ''}${mapH}</div>${acts}</div></div>`;
+    }).join('');
+    return `<div class="daycard"><div class="day-hdr"><div class="day-num" style="background:${c[0]};color:${c[1]}">${i+1}</div><div class="day-meta" onclick="toggleDay(${i})"><div class="day-name">${d.date}&ensp;${d.title}</div>${d.sub ? `<div class="day-sub">${d.sub}</div>` : ''}</div><div class="day-badges">${badges}</div><div class="day-actions"><button class="icon-btn" onclick="openAddDay(${i})" aria-label="編輯"><i class="ti ti-edit"></i></button><i class="ti ti-chevron-down chev" id="chev-${i}" onclick="toggleDay(${i})"></i></div></div><div class="day-body" id="db-${i}" style="display:none">${events}<button class="add-ev-btn" onclick="openAddEvent(${i},null,event)"><i class="ti ti-plus"></i> 新增項目</button></div></div>`;
+  }).join('');
+}
+
+function toggleDay(i) {
+  var b = document.getElementById('db-' + i), c = document.getElementById('chev-' + i);
+  var open = b.style.display === 'block';
+  b.style.display = open ? 'none' : 'block';
+  if (c) c.classList.toggle('open', !open);
+}
+
+// Drag & drop
+var dsDay = null, dsEv = null;
+function ds(e) { var w = e.currentTarget; dsDay = +w.dataset.day; dsEv = +w.dataset.ev; w.classList.add('dragging'); e.dataTransfer.effectAllowed = 'move'; }
+function do_(e) { e.preventDefault(); var w = e.currentTarget; if (+w.dataset.day === dsDay) w.classList.add('drag-over'); }
+function dl(e) { e.currentTarget.classList.remove('drag-over'); }
+function dd(e) {
+  e.preventDefault(); var w = e.currentTarget; w.classList.remove('drag-over');
+  var tD = +w.dataset.day, tE = +w.dataset.ev;
+  if (dsDay === null || dsDay !== tD || dsEv === tE) return;
+  var evs = G.days[dsDay].events, moved = evs.splice(dsEv, 1)[0];
+  evs.splice(tE > dsEv ? tE - 1 : tE, 0, moved);
+  scheduleSave(); renderDays();
+  setTimeout(() => { toggleDay(dsDay); document.getElementById('chev-' + dsDay)?.classList.add('open'); }, 50);
+  dsDay = null; dsEv = null;
+}
+
+function renderRemind() {
+  var el = document.getElementById('remind-list');
+  if (!G.reminders || !G.reminders.length) { el.innerHTML = '<div style="text-align:center;padding:20px;font-size:14px;color:var(--text3)">尚無提醒</div>'; return; }
+  el.innerHTML = G.reminders.map((r, i) => {
+    var col = R_COL[r.type] || R_COL.other, icon = R_ICON[r.type] || 'ti-bell';
+    var ck = r.done ? '<i class="ti ti-check" style="font-size:11px;color:#fff"></i>' : '';
+    return `<div class="remind-card" style="background:${col[0]};border-color:${col[1]}" onclick="openAddRemind(${i})"><div class="r-icon" style="background:${col[1]}"><i class="ti ${icon}" style="font-size:14px;color:${col[2]}"></i></div><div style="flex:1"><div class="r-title" style="color:${col[2]}">${r.title}</div><div class="r-sub" style="color:${col[3]}">${r.sub}</div><div class="r-date" style="color:${col[3]}"><i class="ti ti-calendar" style="font-size:11px"></i>${r.date}</div></div><div class="r-check ${r.done ? 'done' : ''}" style="border-color:${col[4]};color:${col[4]}" onclick="toggleRemind(${i},event)">${ck}</div></div>`;
+  }).join('');
+}
+
+function toggleRemind(i, e) { e.stopPropagation(); G.reminders[i].done = !G.reminders[i].done; scheduleSave(); renderRemind(); }
+
+function renderAccom() {
+  var e1 = document.getElementById('accom-list'), e2 = document.getElementById('luggage-list');
+  e1.innerHTML = (!G.accom || !G.accom.length) ? '<div style="text-align:center;padding:16px;font-size:14px;color:var(--text3)">尚無住宿</div>' :
+    G.accom.map((a, i) => {
+      var mapH = a.mapUrl ? `<a class="map-btn" href="${a.mapUrl}" onclick="nav(event,'${a.mapUrl}')"><i class="ti ti-brand-google-maps"></i> 導航到飯店</a>` : '';
+      return `<div class="accard"><div style="display:flex;justify-content:space-between;align-items:flex-start"><div><div style="font-size:15px;font-weight:700;color:var(--text)">${a.name}</div><div style="font-size:13px;color:var(--text2);margin-top:3px">${a.checkIn} — ${a.checkOut}</div></div><div style="display:flex;align-items:center;gap:7px"><span class="${a.status === 'ok' ? 'status-ok' : 'status-warn'}">${a.status === 'ok' ? '已確認' : '待確認'}</span><button class="icon-btn" onclick="openAddAccom(${i})" aria-label="編輯"><i class="ti ti-edit"></i></button></div></div>${mapH ? '<div style="margin-top:9px">' + mapH + '</div>' : ''}</div>`;
+    }).join('');
+  e2.innerHTML = (!G.luggage || !G.luggage.length) ? '<div style="text-align:center;padding:14px;font-size:14px;color:var(--text3)">尚無寄放記錄</div>' :
+    '<div style="background:var(--card);border-radius:var(--radius);border:0.5px solid var(--border);padding:10px 13px">' +
+    G.luggage.map((l, i) => {
+      var mapH = l.mapUrl ? `<a class="map-btn" href="${l.mapUrl}" onclick="nav(event,'${l.mapUrl}')"><i class="ti ti-brand-google-maps"></i> 導航</a>` : '';
+      return `<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:0.5px solid var(--border)"><div><div style="font-size:13px;font-weight:600;color:var(--text)">${l.name}</div>${l.note ? `<div style="font-size:12px;color:var(--text2)">${l.note}</div>` : ''}</div><div style="display:flex;gap:5px;align-items:center">${mapH}<button class="icon-btn red" onclick="delLuggage(${i})" aria-label="刪除"><i class="ti ti-trash"></i></button></div></div>`;
+    }).join('') + '</div>';
+}
+
+function renderPack() {
+  var el = document.getElementById('pack-list');
+  var cats = G.packs || {}, keys = Object.keys(cats).filter(k => cats[k] && cats[k].length);
+  if (!keys.length) { el.innerHTML = '<div style="text-align:center;padding:16px;font-size:14px;color:var(--text3)">尚無物品</div>'; return; }
+  el.innerHTML = keys.map((cat, ci) => {
+    var items = cats[cat], done = items.filter(x => x.done).length;
+    var bid = 'pb-' + ci, cid = 'pc-' + ci;
+    var iH = items.map((it, ii) => {
+      var wc = it.who === 'a' ? 'who-a' : it.who === 'b' ? 'who-b' : 'who-a';
+      var wl = it.who === 'a' ? 'A' : it.who === 'b' ? 'B' : '兩人';
+      var ck = it.done ? '<i class="ti ti-check" style="font-size:11px;color:#fff"></i>' : '';
+      return `<div class="pack-item"><div class="pack-check ${it.done ? 'on' : ''}" onclick="togglePack('${cat}',${ii})">${ck}</div><span class="pack-label${it.done ? ' done' : ''}">${it.name}</span><span class="who-badge ${wc}">${wl}</span><button class="pack-del" onclick="delPack('${cat}',${ii})" aria-label="刪除"><i class="ti ti-trash"></i></button></div>`;
+    }).join('');
+    return `<div class="pack-card"><div class="pack-hdr" onclick="togglePack_('${bid}','${cid}')"><div class="pack-icon"><i class="ti ${PACK_ICONS[ci % PACK_ICONS.length]}" style="font-size:15px;color:var(--green)"></i></div><span style="flex:1;font-size:14px;font-weight:700;color:var(--text)">${cat}</span><span style="font-size:13px;color:var(--text3)">${done}/${items.length}</span><i class="ti ti-chevron-down chev" id="${cid}"></i></div><div class="pack-body" id="${bid}" style="display:none">${iH}</div></div>`;
+  }).join('');
+}
+
+function togglePack_(bid, cid) { var b = document.getElementById(bid), c = document.getElementById(cid), o = b.style.display === 'block'; b.style.display = o ? 'none' : 'block'; if (c) c.classList.toggle('open', !o); }
+function togglePack(cat, idx) { G.packs[cat][idx].done = !G.packs[cat][idx].done; scheduleSave(); renderPack(); }
+function renderAll() { renderDays(); renderRemind(); renderAccom(); renderPack(); renderNotes(); }
+
+// ─── Badge Picker ─────────────────────────────────────────
+function toggleBadge(el, name) {
+  el.classList.toggle('on');
+  var i = G.selBadges.indexOf(name);
+  if (i > -1) G.selBadges.splice(i, 1); else G.selBadges.push(name);
+}
+
+// ─── Day CRUD ────────────────────────────────────────────
+function openAddDay(idx) {
+  editDayIdx = idx;
+  G.selBadges = [];
+  document.querySelectorAll('.badge-opt').forEach(b => b.classList.remove('on'));
+  document.getElementById('day-modal-title').textContent = idx === null ? '新增一天' : '編輯這天';
+  document.getElementById('day-del-btn').style.display = idx === null ? 'none' : 'block';
+  if (idx !== null) {
+    var d = G.days[idx];
+    document.getElementById('d-date').value = d.date || '';
+    document.getElementById('d-title').value = d.title || '';
+    document.getElementById('d-sub').value = d.sub || '';
+    G.selBadges = (d.badges || []).slice();
+    G.selBadges.forEach(b => document.querySelectorAll('.badge-opt').forEach(btn => { if (btn.textContent === b) btn.classList.add('on'); }));
+  } else {
+    ['d-date','d-title','d-sub'].forEach(id => document.getElementById(id).value = '');
+  }
+  openModal('modal-day');
+}
+function saveDay() {
+  var tl = document.getElementById('d-title').value.trim();
+  if (!tl) { toast('請填寫標題'); return; }
+  var obj = { date: document.getElementById('d-date').value.trim(), title: tl, sub: document.getElementById('d-sub').value.trim(), badges: G.selBadges.slice() };
+  if (editDayIdx === null) { obj.events = []; G.days.push(obj); }
+  else { obj.events = G.days[editDayIdx].events || []; G.days[editDayIdx] = obj; }
+  scheduleSave(); renderDays(); closeModal('modal-day');
+}
+function deleteDay() {
+  if (!confirm('確定刪除這一天及所有行程？')) return;
+  G.days.splice(editDayIdx, 1);
+  scheduleSave(); renderDays(); closeModal('modal-day');
+}
+
+// ─── Event CRUD ──────────────────────────────────────────
+function setEvType(t) {
+  G.evType = t;
+  ['normal','train','flex'].forEach(x => {
+    document.getElementById('etype-' + x).classList.toggle('on', x === t);
+    document.getElementById('ev-' + x + '-fields').style.display = x === t ? 'block' : 'none';
+  });
+}
+function pickColor(el) {
+  document.querySelectorAll('.swatch').forEach(s => s.classList.remove('on'));
+  el.classList.add('on');
+  G.segColor = { c: el.dataset.c, t: el.dataset.t, b: el.dataset.b };
+}
+function openAddEvent(dayIdx, evIdx, e) {
+  if (e) e.stopPropagation();
+  editEvIdx = evIdx; G.curDay = dayIdx; G.selPlace.ev = null;
+  document.getElementById('ev-modal-title').textContent = evIdx === null ? '新增項目' : '編輯項目';
+  document.getElementById('ev-del-btn').style.display = evIdx === null ? 'none' : 'block';
+  ['ev-time','ev-title','ev-note','ev-place-q','tr-depart','tr-arrive','tr-from','tr-to','tr-type','tr-warn','fl-time','fl-title','fl-items'].forEach(id => { var el = document.getElementById(id); if (el) el.value = ''; });
+  document.getElementById('ev-place-results').style.display = 'none';
+  document.getElementById('ev-place-sel').style.display = 'none';
+  if (evIdx !== null) {
+    var ev = G.days[dayIdx].events[evIdx];
+    setEvType(ev.type || 'normal');
+    if (ev.type === 'normal') {
+      document.getElementById('ev-time').value = ev.time || '';
+      document.getElementById('ev-title').value = ev.title || '';
+      document.getElementById('ev-note').value = ev.note || '';
+      if (ev.mapUrl) { document.getElementById('ev-place-sel').textContent = '已儲存地圖連結'; document.getElementById('ev-place-sel').style.display = 'block'; G.selPlace.ev = { url: ev.mapUrl }; }
+    } else if (ev.type === 'train') {
+      document.getElementById('tr-depart').value = ev.depart || '';
+      document.getElementById('tr-arrive').value = ev.arrive || '';
+      document.getElementById('tr-from').value = ev.from || '';
+      document.getElementById('tr-to').value = ev.to || '';
+      document.getElementById('tr-type').value = ev.trainType || '';
+      document.getElementById('tr-warn').value = ev.warnMin || '';
+    } else if (ev.type === 'flex') {
+      document.getElementById('fl-time').value = ev.flexTime || '';
+      document.getElementById('fl-title').value = ev.flexTitle || '';
+      document.getElementById('fl-items').value = (ev.flexItems || []).join('\n');
+      if (ev.segColor) { G.segColor = ev.segColor; document.querySelectorAll('.swatch').forEach(s => s.classList.toggle('on', s.dataset.c === ev.segColor.c)); }
+    }
+  } else { setEvType('normal'); }
+  openModal('modal-event');
+}
+function saveEvent() {
+  var ev = { type: G.evType };
+  if (G.evType === 'normal') {
+    var t = document.getElementById('ev-title').value.trim(); if (!t) { toast('請填寫名稱'); return; }
+    ev.time = document.getElementById('ev-time').value.trim();
+    ev.title = t; ev.note = document.getElementById('ev-note').value.trim();
+    ev.mapUrl = G.selPlace.ev ? G.selPlace.ev.url : (editEvIdx !== null && G.days[G.curDay]?.events[editEvIdx] ? G.days[G.curDay].events[editEvIdx].mapUrl || '' : '');
+  } else if (G.evType === 'train') {
+    var fr = document.getElementById('tr-from').value.trim(), to = document.getElementById('tr-to').value.trim();
+    if (!fr || !to) { toast('請填寫出發站與抵達站'); return; }
+    ev.time = document.getElementById('tr-depart').value.trim(); ev.depart = ev.time;
+    ev.arrive = document.getElementById('tr-arrive').value.trim();
+    ev.from = fr; ev.to = to; ev.trainType = document.getElementById('tr-type').value.trim();
+    ev.warnMin = parseInt(document.getElementById('tr-warn').value) || 0;
+    ev.mapUrl = G.selPlace.ev ? G.selPlace.ev.url : 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(fr);
+  } else {
+    var ft = document.getElementById('fl-title').value.trim(); if (!ft) { toast('請填寫標題'); return; }
+    ev.time = (document.getElementById('fl-time').value.trim().split('–')[0] || '').trim();
+    ev.flexTime = document.getElementById('fl-time').value.trim(); ev.flexTitle = ft;
+    ev.flexItems = document.getElementById('fl-items').value.split('\n').map(s => s.trim()).filter(Boolean);
+    ev.segColor = Object.assign({}, G.segColor);
+  }
+  if (!G.days[G.curDay].events) G.days[G.curDay].events = [];
+  if (editEvIdx === null) G.days[G.curDay].events.push(ev);
+  else G.days[G.curDay].events[editEvIdx] = ev;
+  scheduleSave(); renderDays(); closeModal('modal-event');
+  setTimeout(() => { var db = document.getElementById('db-' + G.curDay); if (db && db.style.display !== 'block') toggleDay(G.curDay); }, 60);
+}
+function deleteEvent() {
+  if (!confirm('確定刪除？')) return;
+  G.days[G.curDay].events.splice(editEvIdx, 1);
+  scheduleSave(); renderDays(); closeModal('modal-event');
+}
+function quickDelEv(di, ei, e) {
+  e.stopPropagation();
+  if (!confirm('確定刪除？')) return;
+  G.days[di].events.splice(ei, 1);
+  scheduleSave(); renderDays();
+  setTimeout(() => { var db = document.getElementById('db-' + di); if (db && db.style.display !== 'block') toggleDay(di); }, 60);
+}
+
+// ─── Remind CRUD ─────────────────────────────────────────
+function openAddRemind(idx) {
+  editRemindIdx = idx;
+  document.getElementById('remind-modal-title').textContent = idx === null ? '新增提醒' : '編輯提醒';
+  document.getElementById('remind-del-btn').style.display = idx === null ? 'none' : 'block';
+  if (idx !== null) { var r = G.reminders[idx]; document.getElementById('r-title').value = r.title || ''; document.getElementById('r-sub').value = r.sub || ''; document.getElementById('r-date').value = r.date || ''; document.getElementById('r-type').value = r.type || 'other'; }
+  else ['r-title','r-sub','r-date'].forEach(id => document.getElementById(id).value = '');
+  openModal('modal-remind');
+}
+function saveRemind() {
+  var t = document.getElementById('r-title').value.trim(); if (!t) { toast('請填寫標題'); return; }
+  var obj = { title: t, sub: document.getElementById('r-sub').value.trim(), date: document.getElementById('r-date').value.trim(), type: document.getElementById('r-type').value, done: editRemindIdx !== null ? G.reminders[editRemindIdx].done : false };
+  if (editRemindIdx === null) G.reminders.push(obj); else G.reminders[editRemindIdx] = obj;
+  scheduleSave(); renderRemind(); closeModal('modal-remind');
+}
+function deleteRemind() {
+  if (!confirm('確定刪除？')) return;
+  G.reminders.splice(editRemindIdx, 1);
+  scheduleSave(); renderRemind(); closeModal('modal-remind');
+}
+
+// ─── Accom CRUD ──────────────────────────────────────────
+function openAddAccom(idx) {
+  editAccomIdx = idx; G.selPlace.ac = null;
+  document.getElementById('accom-modal-title').textContent = idx === null ? '新增住宿' : '編輯住宿';
+  document.getElementById('accom-del-btn').style.display = idx === null ? 'none' : 'block';
+  document.getElementById('ac-place-results').style.display = 'none'; document.getElementById('ac-place-sel').style.display = 'none';
+  if (idx !== null) { var a = G.accom[idx]; document.getElementById('ac-name').value = a.name || ''; document.getElementById('ac-in').value = a.checkIn || ''; document.getElementById('ac-out').value = a.checkOut || ''; document.getElementById('ac-status').value = a.status || 'ok'; if (a.mapUrl) { document.getElementById('ac-place-sel').textContent = '已儲存地圖連結'; document.getElementById('ac-place-sel').style.display = 'block'; G.selPlace.ac = { url: a.mapUrl }; } }
+  else ['ac-name','ac-in','ac-out'].forEach(id => document.getElementById(id).value = '');
+  openModal('modal-accom');
+}
+function saveAccom() {
+  var n = document.getElementById('ac-name').value.trim(); if (!n) { toast('請填寫住宿名稱'); return; }
+  var obj = { name: n, checkIn: document.getElementById('ac-in').value.trim(), checkOut: document.getElementById('ac-out').value.trim(), status: document.getElementById('ac-status').value, mapUrl: G.selPlace.ac ? G.selPlace.ac.url : (editAccomIdx !== null ? G.accom[editAccomIdx]?.mapUrl || '' : '') };
+  if (editAccomIdx === null) G.accom.push(obj); else G.accom[editAccomIdx] = obj;
+  G.selPlace.ac = null; scheduleSave(); renderAccom(); closeModal('modal-accom');
+}
+function deleteAccom() {
+  if (!confirm('確定刪除？')) return;
+  G.accom.splice(editAccomIdx, 1);
+  scheduleSave(); renderAccom(); closeModal('modal-accom');
+}
+function openAddLuggage(idx) {
+  G.selPlace.lg = null; document.getElementById('lg-name').value = ''; document.getElementById('lg-note').value = '';
+  document.getElementById('lg-place-results').style.display = 'none'; document.getElementById('lg-place-sel').style.display = 'none';
+  openModal('modal-luggage');
+}
+function saveLuggage() {
+  var n = document.getElementById('lg-name').value.trim(); if (!n) { toast('請填寫地點名稱'); return; }
+  G.luggage.push({ name: n, note: document.getElementById('lg-note').value.trim(), mapUrl: G.selPlace.lg ? G.selPlace.lg.url : '' });
+  G.selPlace.lg = null; scheduleSave(); renderAccom(); closeModal('modal-luggage');
+}
+function delLuggage(i) { if (!confirm('確定刪除？')) return; G.luggage.splice(i, 1); scheduleSave(); renderAccom(); }
+
+// ─── Pack CRUD ───────────────────────────────────────────
+function savePack() {
+  var n = document.getElementById('pk-name').value.trim(); if (!n) { toast('請填寫物品名稱'); return; }
+  var cat = document.getElementById('pk-cat').value;
+  if (!G.packs[cat]) G.packs[cat] = [];
+  G.packs[cat].push({ name: n, who: document.getElementById('pk-who').value, done: false });
+  scheduleSave(); renderPack(); closeModal('modal-pack');
+}
+function delPack(cat, idx) { if (!confirm('確定刪除？')) return; G.packs[cat].splice(idx, 1); scheduleSave(); renderPack(); }
+
+// ─── Place Search ────────────────────────────────────────
+var PLACES = {
+  '上野': ['Grids Tokyo Ueno Hotel & Hostel, 東京都台東區上野7-1-5', '上野站, 東京都台東區上野', '上野恩賜公園, 東京都台東區上野公園'],
+  '目黑': ['The Garden Hall, 東京都目黑區三田1-13-2', '目黑站, 東京都目黑區', '中目黑站, 東京都目黑區'],
+  '船橋': ['船橋站, 千葉縣船橋市', '日出旅館, 千葉縣船橋市'],
+  '熱海': ['熱海站, 靜岡縣熱海市', '熱海海岸, 靜岡縣熱海市', 'MOA 美術館, 靜岡縣熱海市'],
+  '羽田': ['羽田機場第1ターミナル, 東京都大田區', '羽田機場第2ターミナル, 東京都大田區'],
+  '成田': ['成田機場第1ターミナル, 千葉縣成田市', '成田機場第2ターミナル, 千葉縣成田市'],
+  '秋葉原': ['秋葉原電器街, 東京都千代田區外神田', '秋葉原站, 東京都千代田區外神田1丁目'],
+  '淺草': ['淺草寺, 東京都台東區淺草2丁目3', '仲見世通り, 東京都台東區淺草1丁目'],
+  '涉谷': ['涉谷 Scramble Crossing, 東京都涉谷區', 'SHIBUYA SKY, 東京都涉谷區涉谷2-24-12']
+};
+function searchPlace(ctx) {
+  // ctx determines which input/result elements to use
+  var q = document.getElementById(ctx + '-place-q').value.trim().toLowerCase();
+  var resEl = document.getElementById(ctx + '-place-results');
+  if (!q) { resEl.style.display = 'none'; return; }
+  var matches = [];
+  Object.keys(PLACES).forEach(k => { if (q.includes(k) || k.includes(q)) matches = matches.concat(PLACES[k]); });
+  if (!matches.length) { var all = []; Object.values(PLACES).forEach(v => all = all.concat(v)); matches = all.filter(p => p.toLowerCase().includes(q)); }
+  if (!matches.length) matches = [q + ', 日本'];
+  resEl.innerHTML = matches.slice(0, 5).map(p => {
+    var pts = p.split(', '); var name = pts[0], addr = pts.slice(1).join(', ');
+    var url = 'https://www.google.com/maps/dir/?api=1&destination=' + encodeURIComponent(name + (addr ? ',' + addr : '')) + '&travelmode=transit';
+    return `<div class="search-result" onclick="selectPlace('${ctx}','${name.replace(/'/g,"\\'")}','${addr.replace(/'/g,"\\'")}','${url}')"><div style="width:28px;height:28px;background:var(--blue-bg);border-radius:7px;display:flex;align-items:center;justify-content:center;flex-shrink:0"><i class="ti ti-brand-google-maps" style="font-size:15px;color:var(--gmap)"></i></div><div><div style="font-size:13px;font-weight:600;color:var(--text)">${name}</div>${addr ? `<div style="font-size:12px;color:var(--text2)">${addr}</div>` : ''}</div></div>`;
+  }).join('');
+  resEl.style.display = 'block';
+}
+function selectPlace(ctx, name, addr, url) {
+  G.selPlace[ctx] = { name, url };
+  document.getElementById(ctx + '-place-results').style.display = 'none';
+  var sel = document.getElementById(ctx + '-place-sel');
+  sel.textContent = '已選：' + name + (addr ? ' — ' + addr : '');
+  sel.style.display = 'block';
+  if (ctx === 'ac' && !document.getElementById('ac-name').value) document.getElementById('ac-name').value = name;
+  if (ctx === 'lg' && !document.getElementById('lg-name').value) document.getElementById('lg-name').value = name;
+  if (ctx === 'n' && !document.getElementById('n-title').value) document.getElementById('n-title').value = name;
+}
+
+
+// ─── Notes ───────────────────────────────────────────────
+G.notes = [];
+var editNoteIdx = null, noteCatFilter = 'all', curNoteCat = 'food';
+var NOTE_CATS = {
+  food: { label: '🍜 吃', bg: '#FAEEDA', color: '#854F0B' },
+  shop: { label: '🛍 買', bg: '#EEEDFE', color: '#534AB7' },
+  place: { label: '📍 逛', bg: '#E1F5EE', color: '#0F6E56' },
+  memo: { label: '📝 備忘', bg: '#E6F1FB', color: '#185FA5' }
+};
+
+function filterNotes(cat, el) {
+  noteCatFilter = cat;
+  document.querySelectorAll('#note-cat-tabs .note-cat-btn').forEach(b => b.classList.remove('on'));
+  el.classList.add('on');
+  renderNotes();
+}
+function setNoteCat(cat, el) {
+  curNoteCat = cat;
+  document.querySelectorAll('#ncat-food,#ncat-shop,#ncat-place,#ncat-memo').forEach(b => b.classList.remove('on'));
+  el.classList.add('on');
+}
+function renderNotes() {
+  var el = document.getElementById('notes-list');
+  var notes = G.notes || [];
+  if (noteCatFilter !== 'all') notes = notes.filter(n => n.cat === noteCatFilter);
+  if (!notes.length) { el.innerHTML = '<div style="text-align:center;padding:28px;font-size:14px;color:var(--text3)">尚無筆記，點下方新增<br>或用 AI 整理貼上！</div>'; return; }
+  // group by category
+  var order = ['food','shop','place','memo'];
+  var groups = {};
+  notes.forEach(n => { if (!groups[n.cat]) groups[n.cat] = []; groups[n.cat].push(n); });
+  var html = '';
+  order.forEach(cat => {
+    if (!groups[cat]) return;
+    var ci = NOTE_CATS[cat];
+    groups[cat].forEach((n, gi) => {
+      var realIdx = G.notes.indexOf(n);
+      var mapH = n.mapUrl ? `<a class="note-map" href="${n.mapUrl}" onclick="navNote(event,'${n.mapUrl}')"><i class="ti ti-brand-google-maps"></i> 導航</a>` : '';
+      html += `<div class="note-card"><div class="note-acts"><button class="icon-btn" onclick="openAddNote(${realIdx})" aria-label="編輯"><i class="ti ti-edit"></i></button></div><div class="note-cat-tag" style="background:${ci.bg};color:${ci.color}">${ci.label}</div><div class="note-title">${n.title}</div>${n.body ? `<div class="note-body">${n.body}</div>` : ''}${mapH}${n.day ? `<div class="note-day-tag"><i class="ti ti-calendar" style="font-size:11px"></i> ${n.day}</div>` : ''}</div>`;
+    });
+  });
+  el.innerHTML = html;
+}
+function navNote(e, url) { e.preventDefault(); window.open(url, '_blank'); }
+function openAddNote(idx) {
+  editNoteIdx = idx;
+  document.getElementById('note-modal-title').textContent = idx === null ? '新增筆記' : '編輯筆記';
+  document.getElementById('note-del-btn').style.display = idx === null ? 'none' : 'block';
+  G.selPlace.n = null;
+  document.getElementById('n-place-results').style.display = 'none';
+  document.getElementById('n-place-sel').style.display = 'none';
+  if (idx !== null) {
+    var n = G.notes[idx];
+    setNoteCat(n.cat, document.getElementById('ncat-' + n.cat));
+    document.getElementById('n-title').value = n.title || '';
+    document.getElementById('n-body').value = n.body || '';
+    document.getElementById('n-day').value = n.day || '';
+    if (n.mapUrl) { document.getElementById('n-place-sel').textContent = '已儲存地圖連結'; document.getElementById('n-place-sel').style.display = 'block'; G.selPlace.n = { url: n.mapUrl }; }
+  } else {
+    setNoteCat('food', document.getElementById('ncat-food'));
+    ['n-title','n-body','n-day'].forEach(id => document.getElementById(id).value = '');
+  }
+  openModal('modal-note');
+}
+function saveNote() {
+  var t = document.getElementById('n-title').value.trim(); if (!t) { toast('請填寫標題'); return; }
+  var obj = { cat: curNoteCat, title: t, body: document.getElementById('n-body').value.trim(), day: document.getElementById('n-day').value.trim(), mapUrl: G.selPlace.n ? G.selPlace.n.url : (editNoteIdx !== null ? G.notes[editNoteIdx]?.mapUrl || '' : '') };
+  if (!G.notes) G.notes = [];
+  if (editNoteIdx === null) G.notes.push(obj); else G.notes[editNoteIdx] = obj;
+  scheduleSave(); renderNotes(); closeModal('modal-note');
+}
+function deleteNote() {
+  if (!confirm('確定刪除？')) return;
+  G.notes.splice(editNoteIdx, 1);
+  scheduleSave(); renderNotes(); closeModal('modal-note');
+}
+
+// ─── AI Paste ─────────────────────────────────────────────
+var aiParsedNotes = [];
+function openAIPaste() {
+  document.getElementById('ai-input').value = '';
+  document.getElementById('ai-result').style.display = 'none';
+  document.getElementById('ai-save-notes-btn').style.display = 'none';
+  document.getElementById('ai-parse-btn').textContent = '✦ 整理';
+  document.getElementById('ai-parse-btn').disabled = false;
+  aiParsedNotes = [];
+  openModal('modal-ai');
+}
+async function runAI() {
+  var text = document.getElementById('ai-input').value.trim();
+  if (!text) { toast('請先貼上內容'); return; }
+  var btn = document.getElementById('ai-parse-btn');
+  btn.disabled = true; btn.textContent = '整理中…';
+  document.getElementById('ai-result').style.display = 'block';
+  document.getElementById('ai-result-content').innerHTML = '<div class="ai-loading"><div class="spinner"></div> AI 分析中，請稍候…</div>';
+  document.getElementById('ai-save-notes-btn').style.display = 'none';
+  try {
+    var res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 1000,
+        messages: [{
+          role: 'user',
+          content: `你是旅遊筆記整理助手。請把以下文字整理成結構化筆記，輸出純 JSON 陣列，不要有任何其他文字。
+
+每個筆記格式：
+{"cat":"food|shop|place|memo","title":"簡短標題","body":"詳細說明（地址、時間、價格等）","day":"相關日期（若有）"}
+
+cat 分類規則：
+- food：餐廳、食物、吃的
+- shop：購物、買東西、藥妝、伴手禮
+- place：景點、博物館、公園、逛的地方
+- memo：其他備忘、注意事項
+
+輸入內容：
+${text}`
+        }]
+      })
+    });
+    var data = await res.json();
+    var raw = data.content?.[0]?.text || '[]';
+    // strip markdown
+    raw = raw.replace(/```json?/g,'').replace(/```/g,'').trim();
+    aiParsedNotes = JSON.parse(raw);
+    if (!Array.isArray(aiParsedNotes)) aiParsedNotes = [aiParsedNotes];
+    var preview = aiParsedNotes.map((n,i) => {
+      var ci = NOTE_CATS[n.cat] || NOTE_CATS.memo;
+      return `${i+1}. [${ci.label}] ${n.title}${n.body ? '\n   ' + n.body.substring(0,60) + (n.body.length>60?'…':'') : ''}${n.day ? '\n   📅 '+n.day : ''}`;
+    }).join('\n\n');
+    document.getElementById('ai-result-content').textContent = preview || '沒有解析到內容';
+    document.getElementById('ai-save-notes-btn').style.display = aiParsedNotes.length ? 'block' : 'none';
+  } catch(e) {
+    document.getElementById('ai-result-content').textContent = '整理失敗：' + e.message + '\n\n請確認 Firebase URL 是否設定，或手動新增筆記。';
+  }
+  btn.disabled = false; btn.innerHTML = '<i class="ti ti-sparkles"></i> 重新整理';
+}
+function saveAINotes() {
+  if (!aiParsedNotes.length) return;
+  if (!G.notes) G.notes = [];
+  aiParsedNotes.forEach(n => G.notes.push({ cat: n.cat || 'memo', title: n.title || '未命名', body: n.body || '', day: n.day || '', mapUrl: '' }));
+  scheduleSave(); renderNotes(); closeModal('modal-ai');
+  toast('已新增 ' + aiParsedNotes.length + ' 則筆記！');
+}
+
+// ─── Init ────────────────────────────────────────────────
+initRoom().then(() => {
+  // Open day 1 by default
+  setTimeout(() => {
+    var db = document.getElementById('db-0');
+    if (db) { db.style.display = 'block'; document.getElementById('chev-0')?.classList.add('open'); }
+  }, 300);
+});
+</script>
+</body>
+</html>
