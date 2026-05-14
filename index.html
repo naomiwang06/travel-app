@@ -219,6 +219,25 @@
   .fab-item-icon { width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 18px; flex-shrink: 0; box-shadow: 0 2px 10px rgba(0,0,0,0.15); }
   .fab-backdrop { position: fixed; inset: 0; z-index: 89; display: none; }
   .fab-backdrop.show { display: block; }
+
+
+  .hint-banner { display: flex; align-items: center; gap: 8px; background: var(--blue-bg); color: var(--blue); font-size: 12px; font-weight: 500; padding: 9px 13px; border-radius: var(--radius-sm); margin-bottom: 10px; }
+  /* Context Menu */
+  .ctx-menu { position: fixed; background: var(--card); border-radius: var(--radius); box-shadow: 0 8px 32px rgba(0,0,0,0.18); border: 0.5px solid var(--border); z-index: 500; min-width: 180px; overflow: hidden; }
+  .ctx-item { display: flex; align-items: center; gap: 12px; padding: 14px 16px; font-size: 15px; color: var(--text); cursor: pointer; border-bottom: 0.5px solid var(--border); font-weight: 500; }
+  .ctx-item:last-child { border-bottom: none; }
+  .ctx-item:active { background: var(--bg); }
+  .ctx-item.danger { color: var(--red); }
+  .ctx-item i { font-size: 18px; width: 22px; text-align: center; }
+  .ctx-backdrop { position: fixed; inset: 0; z-index: 499; }
+  /* Long press feedback */
+  .ev-wrap { -webkit-user-select: none; user-select: none; }
+  .ev-wrap.pressing { background: var(--bg); border-radius: var(--radius-sm); }
+  .day-hdr { -webkit-user-select: none; user-select: none; }
+  /* Hide the small icon buttons - replaced by long press */
+  .ev-acts { display: none !important; }
+  .day-actions .icon-btn[aria-label="編輯"] { opacity: 0.45; }
+
   /* Toast */
   .toast { position: fixed; bottom: calc(env(safe-area-inset-bottom, 0) + 16px); left: 50%; transform: translateX(-50%) translateY(80px); background: rgba(0,0,0,0.8); color: #fff; padding: 10px 18px; border-radius: 20px; font-size: 13px; font-weight: 500; z-index: 999; transition: transform 0.3s; pointer-events: none; white-space: nowrap; }
   .toast.show { transform: translateX(-50%) translateY(0); }
@@ -264,6 +283,7 @@
   <div class="content">
     <div id="tp-itinerary" class="tab-page on">
       <div class="sec-label">每日行程</div>
+            <div class="hint-banner" id="edit-hint"><i class="ti ti-hand-stop" style="font-size:16px"></i> 長按任何項目可以編輯、刪除或移動</div>
       <div id="days-list"><div class="loading"><div class="spinner"></div> 載入中…</div></div>
       <button class="add-day-btn" onclick="openAddDay(null)"><i class="ti ti-plus"></i> 新增一天</button>
     </div>
@@ -651,6 +671,15 @@ function checkReminders(reg) {
 <button class="fab" id="fab-btn" onclick="toggleFab()" aria-label="新增">
   <i class="ti ti-plus" id="fab-icon"></i>
 </button>
+
+<!-- Context Menu -->
+<div class="ctx-backdrop" id="ctx-backdrop" style="display:none" onclick="closeCtx()"></div>
+<div class="ctx-menu" id="ctx-menu" style="display:none">
+  <div class="ctx-item" id="ctx-edit" onclick="ctxEdit()"><i class="ti ti-edit"></i> 編輯</div>
+  <div class="ctx-item" id="ctx-move-up" onclick="ctxMove(-1)"><i class="ti ti-arrow-up"></i> 往上移</div>
+  <div class="ctx-item" id="ctx-move-down" onclick="ctxMove(1)"><i class="ti ti-arrow-down"></i> 往下移</div>
+  <div class="ctx-item danger" id="ctx-delete" onclick="ctxDelete()"><i class="ti ti-trash"></i> 刪除</div>
+</div>
 
 <!-- Toast -->
 <div class="toast" id="toast"></div>
@@ -1432,6 +1461,175 @@ function saveAINotes() {
   scheduleSave(); renderNotes(); closeModal('modal-ai');
   toast('已新增 ' + aiParsedNotes.length + ' 則筆記！');
 }
+
+
+
+// ─── Context Menu (long press) ───────────────────────────
+var ctxState = { type: null, dayIdx: null, evIdx: null };
+var pressTimer = null;
+var pressTarget = null;
+
+function showCtx(x, y, type, dayIdx, evIdx) {
+  ctxState = { type, dayIdx, evIdx };
+  var menu = document.getElementById('ctx-menu');
+  var moveUp = document.getElementById('ctx-move-up');
+  var moveDn = document.getElementById('ctx-move-down');
+  
+  // Show/hide move options based on context
+  if (type === 'ev') {
+    var evs = G.days[dayIdx].events;
+    moveUp.style.display = evIdx > 0 ? 'flex' : 'none';
+    moveDn.style.display = evIdx < evs.length - 1 ? 'flex' : 'none';
+  } else if (type === 'day') {
+    moveUp.style.display = dayIdx > 0 ? 'flex' : 'none';
+    moveDn.style.display = dayIdx < G.days.length - 1 ? 'flex' : 'none';
+  } else {
+    moveUp.style.display = 'none';
+    moveDn.style.display = 'none';
+  }
+  
+  // Position menu
+  var vw = window.innerWidth, vh = window.innerHeight;
+  var mw = 200, mh = 200;
+  var mx = Math.min(x, vw - mw - 12);
+  var my = Math.min(y, vh - mh - 12);
+  if (my < 60) my = 60;
+  menu.style.left = mx + 'px';
+  menu.style.top = my + 'px';
+  menu.style.display = 'block';
+  document.getElementById('ctx-backdrop').style.display = 'block';
+  
+  // Haptic feedback
+  if (navigator.vibrate) navigator.vibrate(30);
+}
+
+function closeCtx() {
+  document.getElementById('ctx-menu').style.display = 'none';
+  document.getElementById('ctx-backdrop').style.display = 'none';
+  // Remove pressing state
+  document.querySelectorAll('.pressing').forEach(el => el.classList.remove('pressing'));
+}
+
+function ctxEdit() {
+  closeCtx();
+  if (ctxState.type === 'ev') openAddEvent(ctxState.dayIdx, ctxState.evIdx, null);
+  else if (ctxState.type === 'day') openAddDay(ctxState.dayIdx);
+  else if (ctxState.type === 'remind') openAddRemind(ctxState.evIdx);
+  else if (ctxState.type === 'accom') openAddAccom(ctxState.evIdx);
+  else if (ctxState.type === 'note') openAddNote(ctxState.evIdx);
+}
+
+function ctxDelete() {
+  closeCtx();
+  if (!confirm('確定刪除？')) return;
+  if (ctxState.type === 'ev') {
+    G.days[ctxState.dayIdx].events.splice(ctxState.evIdx, 1);
+    scheduleSave(); renderDays();
+    setTimeout(() => { var db = document.getElementById('db-' + ctxState.dayIdx); if (db && db.style.display !== 'block') toggleDay(ctxState.dayIdx); }, 60);
+  } else if (ctxState.type === 'day') {
+    G.days.splice(ctxState.dayIdx, 1);
+    scheduleSave(); renderDays();
+  } else if (ctxState.type === 'remind') {
+    G.reminders.splice(ctxState.evIdx, 1);
+    scheduleSave(); renderRemind();
+  } else if (ctxState.type === 'accom') {
+    G.accom.splice(ctxState.evIdx, 1);
+    scheduleSave(); renderAccom();
+  } else if (ctxState.type === 'note') {
+    G.notes.splice(ctxState.evIdx, 1);
+    scheduleSave(); renderNotes();
+  }
+}
+
+function ctxMove(dir) {
+  closeCtx();
+  if (ctxState.type === 'ev') {
+    var evs = G.days[ctxState.dayIdx].events;
+    var i = ctxState.evIdx, j = i + dir;
+    if (j < 0 || j >= evs.length) return;
+    [evs[i], evs[j]] = [evs[j], evs[i]];
+    scheduleSave(); renderDays();
+    setTimeout(() => { var db = document.getElementById('db-' + ctxState.dayIdx); if (db && db.style.display !== 'block') toggleDay(ctxState.dayIdx); }, 60);
+  } else if (ctxState.type === 'day') {
+    var i = ctxState.dayIdx, j = i + dir;
+    if (j < 0 || j >= G.days.length) return;
+    [G.days[i], G.days[j]] = [G.days[j], G.days[i]];
+    scheduleSave(); renderDays();
+  }
+}
+
+// Attach long press to elements
+function attachLongPress(el, type, dayIdx, evIdx) {
+  function start(e) {
+    var target = e.currentTarget;
+    target.classList.add('pressing');
+    pressTimer = setTimeout(() => {
+      var touch = e.touches ? e.touches[0] : e;
+      showCtx(touch.clientX, touch.clientY, type, dayIdx, evIdx);
+      target.classList.remove('pressing');
+    }, 500);
+  }
+  function cancel() {
+    clearTimeout(pressTimer);
+    el.classList.remove('pressing');
+  }
+  el.addEventListener('touchstart', start, { passive: true });
+  el.addEventListener('touchend', cancel);
+  el.addEventListener('touchmove', cancel);
+  el.addEventListener('touchcancel', cancel);
+  // Desktop fallback
+  el.addEventListener('contextmenu', function(e) {
+    e.preventDefault();
+    showCtx(e.clientX, e.clientY, type, dayIdx, evIdx);
+  });
+}
+
+// Re-attach after render
+var _origRenderDays = renderDays;
+renderDays = function() {
+  _origRenderDays();
+  // Attach long press to all ev-wrap and day-hdr
+  setTimeout(() => {
+    document.querySelectorAll('.ev-wrap[data-day]').forEach(el => {
+      attachLongPress(el, 'ev', parseInt(el.dataset.day), parseInt(el.dataset.ev));
+    });
+    document.querySelectorAll('.daycard').forEach((el, i) => {
+      var hdr = el.querySelector('.day-hdr');
+      if (hdr) attachLongPress(hdr, 'day', i, null);
+    });
+  }, 50);
+};
+
+var _origRenderRemind = renderRemind;
+renderRemind = function() {
+  _origRenderRemind();
+  setTimeout(() => {
+    document.querySelectorAll('.remind-card').forEach((el, i) => {
+      // remind cards already have onclick for edit, add long press for delete
+      attachLongPress(el, 'remind', null, i);
+    });
+  }, 50);
+};
+
+var _origRenderAccom = renderAccom;
+renderAccom = function() {
+  _origRenderAccom();
+  setTimeout(() => {
+    document.querySelectorAll('.accard').forEach((el, i) => {
+      attachLongPress(el, 'accom', null, i);
+    });
+  }, 50);
+};
+
+var _origRenderNotes = renderNotes;
+renderNotes = function() {
+  _origRenderNotes();
+  setTimeout(() => {
+    document.querySelectorAll('.note-card').forEach((el, i) => {
+      attachLongPress(el, 'note', null, i);
+    });
+  }, 50);
+};
 
 
 // ─── FAB ─────────────────────────────────────────────────
