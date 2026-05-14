@@ -9,7 +9,7 @@
 <title>旅遊規劃</title>
 
 <!-- ★ 第 7 行：把下面的網址換成你的 Firebase Realtime Database 網址 -->
-<script>const FIREBASE_URL = 'https://travel2026-f836d-default-rtdb.firebaseio.com/';</script>
+<script>const FIREBASE_URL = 'YOUR_FIREBASE_URL';</script>
 
 <style>
   :root {
@@ -284,7 +284,7 @@
     <div id="tp-itinerary" class="tab-page on">
       <div class="sec-label">每日行程</div>
             <div class="hint-banner" id="edit-hint"><i class="ti ti-hand-stop" style="font-size:16px"></i> 長按任何項目可以編輯、刪除或移動</div>
-      <div id="days-list"><div class="loading"><div class="spinner"></div> 載入中…</div></div>
+      <div id="days-list"></div>
       <button class="add-day-btn" onclick="openAddDay(null)"><i class="ti ti-plus"></i> 新增一天</button>
     </div>
     <div id="tp-remind" class="tab-page">
@@ -827,17 +827,32 @@ async function initRoom() {
   var saved = localStorage.getItem('travel_room_code');
   if (saved) {
     G.roomCode = saved;
-    var loaded = await firebaseLoad(G.roomCode);
-    if (!loaded) loadFromLocal(G.roomCode);
+    // Try local first (instant), then Firebase in background
+    var hasLocal = loadFromLocal(G.roomCode);
+    if (hasLocal) {
+      updateRoomDisplay();
+      renderAll();
+    } else {
+      // No local data — load INIT_DATA immediately so user sees content
+      G.roomCode = saved;
+      Object.assign(G, JSON.parse(JSON.stringify(INIT_DATA)));
+      updateRoomDisplay();
+      renderAll();
+    }
+    // Try Firebase in background (non-blocking)
+    if (FIREBASE_URL !== 'YOUR_FIREBASE_URL') {
+      firebaseLoad(G.roomCode).then(loaded => {
+        if (loaded) { renderAll(); scheduleSave(); }
+      }).catch(() => {});
+    }
   } else {
     G.roomCode = generateCode();
     localStorage.setItem('travel_room_code', G.roomCode);
-    // Load initial data
     Object.assign(G, JSON.parse(JSON.stringify(INIT_DATA)));
+    updateRoomDisplay();
+    renderAll();
     scheduleSave();
   }
-  updateRoomDisplay();
-  renderAll();
 }
 
 function updateRoomDisplay() {
@@ -853,12 +868,25 @@ async function joinRoom() {
   if (!code) { toast('請輸入房間碼'); return; }
   G.roomCode = code;
   localStorage.setItem('travel_room_code', code);
-  var loaded = await firebaseLoad(code);
-  if (!loaded) { loadFromLocal(code); }
+  // Try local first
+  var hasLocal = loadFromLocal(code);
+  if (!hasLocal) {
+    // Show loading toast
+    toast('載入旅程中…');
+  }
   updateRoomDisplay();
   renderAll();
   closeSync();
-  toast('已加入旅程 ' + code);
+  // Firebase in background
+  if (FIREBASE_URL !== 'YOUR_FIREBASE_URL') {
+    try {
+      var loaded = await firebaseLoad(code);
+      if (loaded) { renderAll(); toast('已加入旅程 ' + code); }
+      else { toast('找不到旅程 ' + code + '，請確認房間碼'); }
+    } catch(e) { toast('已加入旅程 ' + code); }
+  } else {
+    toast('已加入旅程 ' + code);
+  }
 }
 
 function copyRoomCode() {
