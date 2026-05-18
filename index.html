@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+ <!DOCTYPE html>
 <html lang="zh-TW">
 <head>
 <meta charset="UTF-8">
@@ -9,7 +9,7 @@
 <title>旅遊規劃</title>
 
 <!-- ★ 第 7 行：把下面的網址換成你的 Firebase Realtime Database 網址 -->
-<script>const FIREBASE_URL = 'https://travel2026-f836d-default-rtdb.firebaseio.com/';</script>
+<script>const FIREBASE_URL = 'YOUR_FIREBASE_URL';</script>
 
 <style>
   :root {
@@ -114,9 +114,8 @@
   .ev-title { font-size: 13px; font-weight: 600; color: var(--text); }
   .ev-note { font-size: 12px; color: var(--text2); margin-top: 2px; line-height: 1.4; }
   .ev-acts { display: flex; gap: 2px; padding-top: 2px; flex-shrink: 0; }
-  .icon-btn { opacity: 0.35; }
+  .icon-btn { opacity: 0.55; -webkit-tap-highlight-color: rgba(0,0,0,0.08); }
   .ev:hover .icon-btn, .ev-wrap:hover .icon-btn { opacity: 1; }
-  @media (hover: none) { .icon-btn { opacity: 0.6; } }
   .train-chip { display: inline-flex; align-items: center; gap: 5px; font-size: 11px; background: var(--bg); padding: 3px 9px; border-radius: 20px; margin-top: 5px; color: var(--text2); }
   .train-chip b { font-weight: 600; color: var(--text); }
   .warn-chip { display: inline-flex; align-items: center; gap: 4px; font-size: 11px; padding: 3px 9px; border-radius: 20px; margin-top: 4px; font-weight: 600; background: var(--amber-bg); color: var(--amber); }
@@ -125,7 +124,8 @@
   .flex-tags { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 5px; }
   .flex-tag { font-size: 11px; padding: 2px 8px; border-radius: 10px; }
   .add-ev-btn { display: flex; align-items: center; gap: 5px; padding: 7px 4px; font-size: 12px; color: var(--text3); background: none; border: none; cursor: pointer; width: 100%; margin-top: 3px; font-family: inherit; }
-  .add-day-btn { width: 100%; padding: 10px; border-radius: var(--radius-sm); border: 1.5px dashed var(--border2); background: transparent; color: var(--text2); font-size: 13px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; margin-top: 4px; font-family: inherit; }
+  .add-day-btn { width: 100%; padding: 10px; border-radius: var(--radius-sm); border: 1.5px dashed var(--border2); background: transparent; color: var(--text2); font-size: 13px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; margin-top: 4px; font-family: inherit; -webkit-tap-highlight-color: rgba(0,0,0,0.08); }
+  .add-day-btn:active { background: var(--bg); border-color: var(--blue); color: var(--blue); }
 
   /* Remind cards */
   .remind-card { border-radius: var(--radius); border: 0.5px solid; margin-bottom: 8px; padding: 11px 13px; display: flex; gap: 10px; align-items: flex-start; cursor: pointer; }
@@ -159,7 +159,8 @@
   .status-warn { background: var(--amber-bg); color: var(--amber); font-size: 11px; padding: 2px 8px; border-radius: 10px; font-weight: 600; }
 
   /* Modal */
-  .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); display: none; align-items: flex-end; justify-content: center; z-index: 200; }
+  .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); display: none; align-items: flex-end; justify-content: center; z-index: 200; pointer-events: none; }
+  .modal-overlay.open { display: flex; pointer-events: auto; }
   .modal-overlay.open { display: flex; }
   .modal { background: var(--card); border-radius: var(--radius) var(--radius) 0 0; padding: 20px 20px calc(env(safe-area-inset-bottom, 0) + 20px); width: 100%; max-width: 430px; max-height: 90vh; overflow-y: auto; }
   .modal-handle { width: 36px; height: 4px; background: var(--border2); border-radius: 2px; margin: -8px auto 16px; }
@@ -189,7 +190,8 @@
   .sel-place { display: none; margin-top: 6px; padding: 8px 11px; background: var(--blue-bg); border-radius: var(--radius-sm); font-size: 12px; color: var(--blue); font-weight: 500; }
 
   /* Sync screen */
-  .full-screen { position: fixed; inset: 0; background: var(--card); display: none; flex-direction: column; align-items: center; justify-content: center; padding: 32px; z-index: 300; }
+  .full-screen { position: fixed; inset: 0; background: var(--card); display: none; flex-direction: column; align-items: center; justify-content: center; padding: 32px; z-index: 300; pointer-events: none; }
+  .full-screen.open { display: flex; pointer-events: auto; }
   .full-screen.open { display: flex; }
   .code-box { font-size: 32px; font-weight: 700; letter-spacing: 10px; color: var(--text); background: var(--bg); padding: 18px 28px; border-radius: var(--radius); margin: 18px 0; font-family: 'Courier New', monospace; }
   .sync-status { font-size: 13px; color: var(--text3); margin-top: 8px; }
@@ -217,11 +219,12 @@
   .fab-item { display: flex; align-items: center; gap: 10px; cursor: pointer; }
   .fab-item-label { font-size: 13px; font-weight: 600; color: var(--text); background: var(--card); padding: 7px 13px; border-radius: 20px; box-shadow: 0 2px 10px rgba(0,0,0,0.15); white-space: nowrap; }
   .fab-item-icon { width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 18px; flex-shrink: 0; box-shadow: 0 2px 10px rgba(0,0,0,0.15); }
-  .fab-backdrop { position: fixed; inset: 0; z-index: 89; display: none; }
+  .fab-backdrop { position: fixed; inset: 0; z-index: 89; pointer-events: none; opacity: 0; }
+  .fab-backdrop.show { pointer-events: auto; opacity: 1; }
   .fab-backdrop.show { display: block; }
 
 
-  .hint-banner { display: flex; align-items: center; gap: 8px; background: var(--blue-bg); color: var(--blue); font-size: 12px; font-weight: 500; padding: 9px 13px; border-radius: var(--radius-sm); margin-bottom: 10px; }
+  .hint-banner { display: flex; align-items: center; gap: 8px; background: var(--blue-bg); color: var(--blue); font-size: 12px; font-weight: 500; padding: 9px 13px; border-radius: var(--radius-sm); margin-bottom: 10px; pointer-events: none; }
   /* Context Menu */
   .ctx-menu { position: fixed; background: var(--card); border-radius: var(--radius); box-shadow: 0 8px 32px rgba(0,0,0,0.18); border: 0.5px solid var(--border); z-index: 500; min-width: 180px; overflow: hidden; }
   .ctx-item { display: flex; align-items: center; gap: 12px; padding: 14px 16px; font-size: 15px; color: var(--text); cursor: pointer; border-bottom: 0.5px solid var(--border); font-weight: 500; }
@@ -229,7 +232,8 @@
   .ctx-item:active { background: var(--bg); }
   .ctx-item.danger { color: var(--red); }
   .ctx-item i { font-size: 18px; width: 22px; text-align: center; }
-  .ctx-backdrop { position: fixed; inset: 0; z-index: 499; }
+  .ctx-backdrop { position: fixed; inset: 0; z-index: 499; pointer-events: none; }
+  .ctx-backdrop.show { pointer-events: auto; }
   /* Long press feedback */
   .ev-wrap { -webkit-user-select: none; user-select: none; }
   .ev-wrap.pressing { background: var(--bg); border-radius: var(--radius-sm); }
@@ -673,7 +677,7 @@ function checkReminders(reg) {
 </button>
 
 <!-- Context Menu -->
-<div class="ctx-backdrop" id="ctx-backdrop" style="display:none" onclick="closeCtx()"></div>
+<div class="ctx-backdrop" id="ctx-backdrop" onclick="closeCtx()"></div>
 <div class="ctx-menu" id="ctx-menu" style="display:none">
   <div class="ctx-item" id="ctx-edit" onclick="ctxEdit()"><i class="ti ti-edit"></i> 編輯</div>
   <div class="ctx-item" id="ctx-move-up" onclick="ctxMove(-1)"><i class="ti ti-arrow-up"></i> 往上移</div>
@@ -824,33 +828,29 @@ function loadFromLocal(code) {
 function generateCode() { return Math.random().toString(36).substring(2, 6).toUpperCase(); }
 
 async function initRoom() {
+  // Always start with INIT_DATA as baseline
+  Object.assign(G, JSON.parse(JSON.stringify(INIT_DATA)));
+
+  // Try to get saved room code
   var saved = localStorage.getItem('travel_room_code');
-  if (saved) {
-    G.roomCode = saved;
-    // Try local first (instant), then Firebase in background
-    var hasLocal = loadFromLocal(G.roomCode);
-    if (hasLocal) {
-      updateRoomDisplay();
-      renderAll();
-    } else {
-      // No local data — load INIT_DATA immediately so user sees content
-      G.roomCode = saved;
-      Object.assign(G, JSON.parse(JSON.stringify(INIT_DATA)));
-      updateRoomDisplay();
-      renderAll();
-    }
-    // Try Firebase in background (non-blocking)
-    if (FIREBASE_URL !== 'YOUR_FIREBASE_URL') {
-      firebaseLoad(G.roomCode).then(loaded => {
-        if (loaded) { renderAll(); scheduleSave(); }
-      }).catch(() => {});
-    }
-  } else {
-    G.roomCode = generateCode();
-    localStorage.setItem('travel_room_code', G.roomCode);
-    Object.assign(G, JSON.parse(JSON.stringify(INIT_DATA)));
-    updateRoomDisplay();
-    renderAll();
+  G.roomCode = saved || generateCode();
+  if (!saved) localStorage.setItem('travel_room_code', G.roomCode);
+
+  // Try to overlay with local storage data (may have user edits)
+  var hasLocal = loadFromLocal(G.roomCode);
+
+  // Show immediately — never block on network
+  updateRoomDisplay();
+  renderAll();
+
+  // Firebase sync in background (only if configured)
+  if (FIREBASE_URL !== 'YOUR_FIREBASE_URL') {
+    try {
+      var loaded = await firebaseLoad(G.roomCode);
+      if (loaded) { renderAll(); scheduleSave(); }
+    } catch(e) {}
+  } else if (!hasLocal) {
+    // No Firebase, no local — save INIT_DATA to local so it persists
     scheduleSave();
   }
 }
@@ -1525,7 +1525,7 @@ function showCtx(x, y, type, dayIdx, evIdx) {
   menu.style.left = mx + 'px';
   menu.style.top = my + 'px';
   menu.style.display = 'block';
-  document.getElementById('ctx-backdrop').style.display = 'block';
+  document.getElementById('ctx-backdrop').classList.add('show');
   
   // Haptic feedback
   if (navigator.vibrate) navigator.vibrate(30);
@@ -1533,7 +1533,7 @@ function showCtx(x, y, type, dayIdx, evIdx) {
 
 function closeCtx() {
   document.getElementById('ctx-menu').style.display = 'none';
-  document.getElementById('ctx-backdrop').style.display = 'none';
+  document.getElementById('ctx-backdrop').classList.remove('show');
   // Remove pressing state
   document.querySelectorAll('.pressing').forEach(el => el.classList.remove('pressing'));
 }
