@@ -158,6 +158,9 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--blue)}
 /* Spinner */
 @keyframes spin{to{transform:rotate(360deg)}}
 .spinner{width:18px;height:18px;border:2px solid var(--border);border-top-color:var(--blue);border-radius:50%;animation:spin .6s linear infinite;flex-shrink:0}
+
+  .ev-edit { width:32px;height:32px;border:none;background:rgba(0,0,0,0.07);border-radius:8px;cursor:pointer;color:var(--text2);font-size:15px;flex-shrink:0;align-self:center;display:flex;align-items:center;justify-content:center; }
+  .ev-edit:active { background:var(--blue-bg);color:var(--blue); }
 </style>
 </head>
 <body>
@@ -568,13 +571,13 @@ function renderDays(){
       if(ev.type==='flex'){
         const sc=ev.segColor||{c:'#9FE1CB',t:'#085041',b:'#5DCAA5'};
         const tags=(ev.flexItems||[]).map(it=>`<span class="flex-tag" style="background:${sc.b}33;color:${sc.t}">${it}</span>`).join('');
-        return`<div class="ev-wrap" ${drag}><div class="ev"><div class="drag-handle"><i class="ti ti-grip-vertical"></i></div><div class="ev-time">${ev.time||''}</div><div class="ev-line"><div class="ev-dot" style="background:${sc.b}"></div>${conn}</div><div class="ev-body"><div class="flex-seg" style="background:${sc.c}33;border-left-color:${sc.b}"><div style="font-size:11px;font-weight:700;color:${sc.t};margin-bottom:3px"><i class="ti ti-sparkles" style="font-size:11px"></i> ${ev.flexTitle}</div><div class="flex-tags">${tags}</div><div style="font-size:11px;color:${sc.t};margin-top:4px;opacity:.7">${ev.flexTime}</div></div></div></div></div>`;
+        return`<div class="ev-wrap" ${drag}><div class="ev"><div class="drag-handle"><i class="ti ti-grip-vertical"></i></div><div class="ev-time">${ev.time||''}</div><div class="ev-line"><div class="ev-dot" style="background:${sc.b}"></div>${conn}</div><div class="ev-body"><div class="flex-seg" style="background:${sc.c}33;border-left-color:${sc.b}"><div style="font-size:11px;font-weight:700;color:${sc.t};margin-bottom:3px"><i class="ti ti-sparkles" style="font-size:11px"></i> ${ev.flexTitle}</div><div class="flex-tags">${tags}</div><div style="font-size:11px;color:${sc.t};margin-top:4px;opacity:.7">${ev.flexTime}</div></div><button class="ev-edit" onclick="openAddEvent(${i},${ei});event.stopPropagation()"><i class="ti ti-edit"></i></button></div></div></div>`;
       }
       if(ev.type==='train'){
         const wt=ev.warnMin&&ev.depart?calcWarn(ev.depart,ev.warnMin):'';
         const warn=wt?`<div class="warn-chip"><i class="ti ti-alarm" style="font-size:11px"></i> 最晚 ${wt} 到站（${ev.warnMin} 分前）</div>`:'';
         const mapH=ev.mapUrl?`<a class="map-btn" href="${ev.mapUrl}" target="_blank"><i class="ti ti-brand-google-maps"></i> 前往${ev.from}</a>`:'';
-        return`<div class="ev-wrap" ${drag}><div class="ev"><div class="drag-handle"><i class="ti ti-grip-vertical"></i></div><div class="ev-time" style="color:var(--blue);font-weight:700">${ev.depart||''}</div><div class="ev-line"><div class="ev-dot" style="background:#378ADD"></div>${conn}</div><div class="ev-body"><div class="ev-title"><i class="ti ti-train" style="color:var(--blue);font-size:12px"></i> ${ev.trainType||''}</div><div class="train-chip"><i class="ti ti-arrow-right" style="font-size:11px"></i> ${ev.from} → ${ev.to}${ev.arrive?` <b>抵達 ${ev.arrive}</b>`:''}</div>${warn}${mapH}</div></div></div>`;
+        return`<div class="ev-wrap" ${drag}><div class="ev"><div class="drag-handle"><i class="ti ti-grip-vertical"></i></div><div class="ev-time" style="color:var(--blue);font-weight:700">${ev.depart||''}</div><div class="ev-line"><div class="ev-dot" style="background:#378ADD"></div>${conn}</div><div class="ev-body"><div class="ev-title"><i class="ti ti-train" style="color:var(--blue);font-size:12px"></i> ${ev.trainType||''}</div><div class="train-chip"><i class="ti ti-arrow-right" style="font-size:11px"></i> ${ev.from} → ${ev.to}${ev.arrive?` <b>抵達 ${ev.arrive}</b>`:''}</div>${warn}${mapH}<button class="ev-edit" onclick="openAddEvent(${i},${ei});event.stopPropagation()"><i class="ti ti-edit"></i></button></div></div></div>`;
       }
       const mapH=ev.mapUrl?`<a class="map-btn" href="${ev.mapUrl}" target="_blank"><i class="ti ti-brand-google-maps"></i> 導航</a>`:'';
       return`<div class="ev-wrap" ${drag}><div class="ev"><div class="drag-handle"><i class="ti ti-grip-vertical"></i></div><div class="ev-time">${ev.time||''}</div><div class="ev-line"><div class="ev-dot" style="background:${c[1]}"></div>${conn}</div><div class="ev-body"><div class="ev-title">${ev.title}</div>${ev.note?`<div class="ev-note">${ev.note}</div>`:''}${mapH}</div></div></div>`;
@@ -616,7 +619,7 @@ function renderRemind(){
   el.innerHTML=G.reminders.map((r,i)=>{
     const col=R_COL[r.type]||R_COL.other,ico=R_ICO[r.type]||'ti-bell';
     const ck=r.done?'<i class="ti ti-check" style="font-size:11px;color:#fff"></i>':'';
-    return`<div class="remind-card" style="background:${col[0]};border-color:${col[1]}" onclick="openAddRemind(${i})"><div class="r-icon" style="background:${col[1]}"><i class="ti ${ico}" style="font-size:14px;color:${col[2]}"></i></div><div style="flex:1"><div class="r-title" style="color:${col[2]}">${r.title}</div><div class="r-sub" style="color:${col[3]}">${r.sub}</div><div class="r-date" style="color:${col[3]}"><i class="ti ti-calendar" style="font-size:11px"></i>${r.date}</div></div><div class="r-check ${r.done?'done':''}" style="border-color:${col[4]};color:${col[4]}" onclick="toggleRemind(${i},event)">${ck}</div></div>`;
+    return`<div class="remind-card" style="background:${col[0]};border-color:${col[1]}" onclick="openAddRemind(${i})" style="cursor:pointer"><div class="r-icon" style="background:${col[1]}"><i class="ti ${ico}" style="font-size:14px;color:${col[2]}"></i></div><div style="flex:1"><div class="r-title" style="color:${col[2]}">${r.title}</div><div class="r-sub" style="color:${col[3]}">${r.sub}</div><div class="r-date" style="color:${col[3]}"><i class="ti ti-calendar" style="font-size:11px"></i>${r.date}</div></div><div class="r-check ${r.done?'done':''}" style="border-color:${col[4]};color:${col[4]}" onclick="toggleRemind(${i},event)">${ck}</div></div>`;
   }).join('');
   setTimeout(()=>document.querySelectorAll('.remind-card').forEach((el,i)=>attachLp(el,'remind',null,i)),50);
 }
@@ -626,7 +629,7 @@ function renderAccom(){
   const e1=document.getElementById('accom-list'),e2=document.getElementById('luggage-list');
   e1.innerHTML=(!G.accom||!G.accom.length)?'<div style="text-align:center;padding:14px;font-size:14px;color:var(--text3)">尚無住宿</div>':G.accom.map((a,i)=>{
     const mH=a.mapUrl?`<a class="map-btn" href="${a.mapUrl}" target="_blank"><i class="ti ti-brand-google-maps"></i> 導航到飯店</a>`:'';
-    return`<div class="accard"><div style="display:flex;justify-content:space-between;align-items:flex-start"><div><div style="font-size:15px;font-weight:700;color:var(--text)">${a.name}</div><div style="font-size:13px;color:var(--text2);margin-top:3px">${a.checkIn} — ${a.checkOut}</div></div><div style="display:flex;align-items:center;gap:7px"><span class="${a.status==='ok'?'status-ok':'status-warn'}">${a.status==='ok'?'已確認':'待確認'}</span></div></div>${mH?'<div style="margin-top:9px">'+mH+'</div>':''}</div>`;
+    return`<div class="accard" onclick="openAddAccom(${i})" style="cursor:pointer"><div style="display:flex;justify-content:space-between;align-items:flex-start"><div><div style="font-size:15px;font-weight:700;color:var(--text)">${a.name}</div><div style="font-size:13px;color:var(--text2);margin-top:3px">${a.checkIn} — ${a.checkOut}</div></div><div style="display:flex;align-items:center;gap:7px"><span class="${a.status==='ok'?'status-ok':'status-warn'}">${a.status==='ok'?'已確認':'待確認'}</span></div></div>${mH?'<div style="margin-top:9px">'+mH+'</div>':''}</div>`;
   }).join('');
   e2.innerHTML=(!G.luggage||!G.luggage.length)?'<div style="text-align:center;padding:14px;font-size:14px;color:var(--text3)">尚無記錄</div>':'<div style="background:var(--card);border-radius:var(--r);border:.5px solid var(--border);padding:10px 13px">'+G.luggage.map((l,i)=>{
     const mH=l.mapUrl?`<a class="map-btn" href="${l.mapUrl}" target="_blank"><i class="ti ti-brand-google-maps"></i> 導航</a>`:'';
@@ -667,7 +670,7 @@ function renderNotes(){
     groups[cat].forEach(n=>{
       const realIdx=G.notes.indexOf(n);
       const mH=n.mapUrl?`<a class="note-map" href="${n.mapUrl}" target="_blank"><i class="ti ti-brand-google-maps"></i> 導航</a>`:'';
-      html+=`<div class="note-card"><div class="note-cat-tag" style="background:${ci.bg};color:${ci.color}">${ci.label}</div><div class="note-title">${n.title}</div>${n.body?`<div class="note-body">${n.body}</div>`:''}${mH}${n.day?`<div class="note-day-tag"><i class="ti ti-calendar" style="font-size:11px"></i> ${n.day}</div>`:''}</div>`;
+      html+=`<div class="note-card" onclick="openAddNote(${realIdx})" style="cursor:pointer"><div class="note-cat-tag" style="background:${ci.bg};color:${ci.color}">${ci.label}</div><div class="note-title">${n.title}</div>${n.body?`<div class="note-body">${n.body}</div>`:''}${mH}${n.day?`<div class="note-day-tag"><i class="ti ti-calendar" style="font-size:11px"></i> ${n.day}</div>`:''}</div>`;
     });
   });
   el.innerHTML=html;
