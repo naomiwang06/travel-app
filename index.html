@@ -1,4 +1,4 @@
- <!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="zh-TW">
 <head>
 <meta charset="UTF-8">
@@ -827,100 +827,6 @@ function loadFromLocal(code) {
 // ─── Room / Sync ─────────────────────────────────────────
 function generateCode() { return Math.random().toString(36).substring(2, 6).toUpperCase(); }
 
-async function initRoom() {
-  // Always start with INIT_DATA as baseline
-  Object.assign(G, JSON.parse(JSON.stringify(INIT_DATA)));
-
-  // Try to get saved room code
-  var saved = localStorage.getItem('travel_room_code');
-  G.roomCode = saved || generateCode();
-  if (!saved) localStorage.setItem('travel_room_code', G.roomCode);
-
-  // Try to overlay with local storage data (may have user edits)
-  var hasLocal = loadFromLocal(G.roomCode);
-
-  // Show immediately — never block on network
-  updateRoomDisplay();
-  renderAll();
-
-  // Firebase sync in background (only if configured)
-  if (FIREBASE_URL !== 'YOUR_FIREBASE_URL') {
-    try {
-      var loaded = await firebaseLoad(G.roomCode);
-      if (loaded) { renderAll(); scheduleSave(); }
-    } catch(e) {}
-  } else if (!hasLocal) {
-    // No Firebase, no local — save INIT_DATA to local so it persists
-    scheduleSave();
-  }
-}
-
-function updateRoomDisplay() {
-  document.getElementById('room-code-display').textContent = G.roomCode;
-  document.getElementById('sync-code-display').textContent = G.roomCode;
-  var dot = document.getElementById('sync-dot');
-  dot.className = 'sync-dot' + (FIREBASE_URL !== 'YOUR_FIREBASE_URL' ? '' : ' offline');
-  document.getElementById('sync-status-text').textContent = FIREBASE_URL !== 'YOUR_FIREBASE_URL' ? '已連線 Firebase — 即時同步' : '⚠️ 尚未設定 Firebase（僅本機儲存）';
-}
-
-async function joinRoom() {
-  var code = document.getElementById('join-input').value.trim().toUpperCase();
-  if (!code) { toast('請輸入房間碼'); return; }
-  G.roomCode = code;
-  localStorage.setItem('travel_room_code', code);
-  // Try local first
-  var hasLocal = loadFromLocal(code);
-  if (!hasLocal) {
-    // Show loading toast
-    toast('載入旅程中…');
-  }
-  updateRoomDisplay();
-  renderAll();
-  closeSync();
-  // Firebase in background
-  if (FIREBASE_URL !== 'YOUR_FIREBASE_URL') {
-    try {
-      var loaded = await firebaseLoad(code);
-      if (loaded) { renderAll(); toast('已加入旅程 ' + code); }
-      else { toast('找不到旅程 ' + code + '，請確認房間碼'); }
-    } catch(e) { toast('已加入旅程 ' + code); }
-  } else {
-    toast('已加入旅程 ' + code);
-  }
-}
-
-function copyRoomCode() {
-  if (navigator.clipboard) navigator.clipboard.writeText(G.roomCode);
-  toast('已複製房間碼 ' + G.roomCode);
-}
-
-function openSync() { document.getElementById('sync-screen').classList.add('open'); }
-function closeSync() { document.getElementById('sync-screen').classList.remove('open'); }
-
-// ─── UI Helpers ──────────────────────────────────────────
-function switchTab(name, el) {
-  document.querySelectorAll('.tab-page').forEach(p => p.classList.remove('on'));
-  document.querySelectorAll('.tab').forEach(t => t.classList.remove('on'));
-  document.getElementById('tp-' + name).classList.add('on');
-  el.classList.add('on');
-}
-
-function openModal(id) { document.getElementById(id).classList.add('open'); }
-function closeModal(id) { document.getElementById(id).classList.remove('open'); }
-function overlayClose(e, id) { if (e.target === e.currentTarget) closeModal(id); }
-
-function toast(msg) {
-  var el = document.getElementById('toast');
-  el.textContent = msg;
-  el.classList.add('show');
-  setTimeout(() => el.classList.remove('show'), 2200);
-}
-
-function nav(e, url) {
-  e.preventDefault();
-  window.open(url, '_blank');
-}
-
 // ─── Rendering ───────────────────────────────────────────
 var DAY_COLORS = [
   ['#E6F1FB','#185FA5'],['#FBEAF0','#993556'],['#FBEAF0','#72243E'],
@@ -1695,6 +1601,100 @@ function fabAction(type) {
   else if (type === 'ai') { openAIPaste(); }
 }
 // ─── Init ────────────────────────────────────────────────
+async function initRoom() {
+  // Always start with INIT_DATA as baseline
+  Object.assign(G, JSON.parse(JSON.stringify(INIT_DATA)));
+
+  // Try to get saved room code
+  var saved = localStorage.getItem('travel_room_code');
+  G.roomCode = saved || generateCode();
+  if (!saved) localStorage.setItem('travel_room_code', G.roomCode);
+
+  // Try to overlay with local storage data (may have user edits)
+  var hasLocal = loadFromLocal(G.roomCode);
+
+  // Show immediately — never block on network
+  updateRoomDisplay();
+  renderAll();
+
+  // Firebase sync in background (only if configured)
+  if (FIREBASE_URL !== 'YOUR_FIREBASE_URL') {
+    try {
+      var loaded = await firebaseLoad(G.roomCode);
+      if (loaded) { renderAll(); scheduleSave(); }
+    } catch(e) {}
+  } else if (!hasLocal) {
+    // No Firebase, no local — save INIT_DATA to local so it persists
+    scheduleSave();
+  }
+}
+
+function updateRoomDisplay() {
+  document.getElementById('room-code-display').textContent = G.roomCode;
+  document.getElementById('sync-code-display').textContent = G.roomCode;
+  var dot = document.getElementById('sync-dot');
+  dot.className = 'sync-dot' + (FIREBASE_URL !== 'YOUR_FIREBASE_URL' ? '' : ' offline');
+  document.getElementById('sync-status-text').textContent = FIREBASE_URL !== 'YOUR_FIREBASE_URL' ? '已連線 Firebase — 即時同步' : '⚠️ 尚未設定 Firebase（僅本機儲存）';
+}
+
+async function joinRoom() {
+  var code = document.getElementById('join-input').value.trim().toUpperCase();
+  if (!code) { toast('請輸入房間碼'); return; }
+  G.roomCode = code;
+  localStorage.setItem('travel_room_code', code);
+  // Try local first
+  var hasLocal = loadFromLocal(code);
+  if (!hasLocal) {
+    // Show loading toast
+    toast('載入旅程中…');
+  }
+  updateRoomDisplay();
+  renderAll();
+  closeSync();
+  // Firebase in background
+  if (FIREBASE_URL !== 'YOUR_FIREBASE_URL') {
+    try {
+      var loaded = await firebaseLoad(code);
+      if (loaded) { renderAll(); toast('已加入旅程 ' + code); }
+      else { toast('找不到旅程 ' + code + '，請確認房間碼'); }
+    } catch(e) { toast('已加入旅程 ' + code); }
+  } else {
+    toast('已加入旅程 ' + code);
+  }
+}
+
+function copyRoomCode() {
+  if (navigator.clipboard) navigator.clipboard.writeText(G.roomCode);
+  toast('已複製房間碼 ' + G.roomCode);
+}
+
+function openSync() { document.getElementById('sync-screen').classList.add('open'); }
+function closeSync() { document.getElementById('sync-screen').classList.remove('open'); }
+
+// ─── UI Helpers ──────────────────────────────────────────
+function switchTab(name, el) {
+  document.querySelectorAll('.tab-page').forEach(p => p.classList.remove('on'));
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('on'));
+  document.getElementById('tp-' + name).classList.add('on');
+  el.classList.add('on');
+}
+
+function openModal(id) { document.getElementById(id).classList.add('open'); }
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+function overlayClose(e, id) { if (e.target === e.currentTarget) closeModal(id); }
+
+function toast(msg) {
+  var el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  setTimeout(() => el.classList.remove('show'), 2200);
+}
+
+function nav(e, url) {
+  e.preventDefault();
+  window.open(url, '_blank');
+}
+
 initRoom().then(() => {
   // Open day 1 by default
   setTimeout(() => {
