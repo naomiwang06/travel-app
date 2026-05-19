@@ -159,8 +159,9 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--blue)}
 @keyframes spin{to{transform:rotate(360deg)}}
 .spinner{width:18px;height:18px;border:2px solid var(--border);border-top-color:var(--blue);border-radius:50%;animation:spin .6s linear infinite;flex-shrink:0}
 
-  .ev-edit { width:32px;height:32px;border:none;background:rgba(0,0,0,0.07);border-radius:8px;cursor:pointer;color:var(--text2);font-size:15px;flex-shrink:0;align-self:center;display:flex;align-items:center;justify-content:center; }
-  .ev-edit:active { background:var(--blue-bg);color:var(--blue); }
+  .ev-body { position:relative; }
+  .ev-body[onclick]:active { opacity:0.7; }
+
 </style>
 </head>
 <body>
@@ -571,16 +572,16 @@ function renderDays(){
       if(ev.type==='flex'){
         const sc=ev.segColor||{c:'#9FE1CB',t:'#085041',b:'#5DCAA5'};
         const tags=(ev.flexItems||[]).map(it=>`<span class="flex-tag" style="background:${sc.b}33;color:${sc.t}">${it}</span>`).join('');
-        return`<div class="ev-wrap" ${drag}><div class="ev"><div class="drag-handle"><i class="ti ti-grip-vertical"></i></div><div class="ev-time">${ev.time||''}</div><div class="ev-line"><div class="ev-dot" style="background:${sc.b}"></div>${conn}</div><div class="ev-body"><div class="flex-seg" style="background:${sc.c}33;border-left-color:${sc.b}"><div style="font-size:11px;font-weight:700;color:${sc.t};margin-bottom:3px"><i class="ti ti-sparkles" style="font-size:11px"></i> ${ev.flexTitle}</div><div class="flex-tags">${tags}</div><div style="font-size:11px;color:${sc.t};margin-top:4px;opacity:.7">${ev.flexTime}</div></div><button class="ev-edit" onclick="openAddEvent(${i},${ei});event.stopPropagation()"><i class="ti ti-edit"></i></button></div></div></div>`;
+        return`<div class="ev-wrap" ${drag}><div class="ev"><div class="drag-handle"><i class="ti ti-grip-vertical"></i></div><div class="ev-time">${ev.time||''}</div><div class="ev-line"><div class="ev-dot" style="background:${sc.b}"></div>${conn}</div><div class="ev-body" onclick="openAddEvent(${i},${ei})" style="cursor:pointer"><div class="flex-seg" style="background:${sc.c}33;border-left-color:${sc.b}"><div style="font-size:11px;font-weight:700;color:${sc.t};margin-bottom:3px"><i class="ti ti-sparkles" style="font-size:11px"></i> ${ev.flexTitle}</div><div class="flex-tags">${tags}</div><div style="font-size:11px;color:${sc.t};margin-top:4px;opacity:.7">${ev.flexTime}</div></div></div></div></div>`;
       }
       if(ev.type==='train'){
         const wt=ev.warnMin&&ev.depart?calcWarn(ev.depart,ev.warnMin):'';
         const warn=wt?`<div class="warn-chip"><i class="ti ti-alarm" style="font-size:11px"></i> 最晚 ${wt} 到站（${ev.warnMin} 分前）</div>`:'';
         const mapH=ev.mapUrl?`<a class="map-btn" href="${ev.mapUrl}" target="_blank"><i class="ti ti-brand-google-maps"></i> 前往${ev.from}</a>`:'';
-        return`<div class="ev-wrap" ${drag}><div class="ev"><div class="drag-handle"><i class="ti ti-grip-vertical"></i></div><div class="ev-time" style="color:var(--blue);font-weight:700">${ev.depart||''}</div><div class="ev-line"><div class="ev-dot" style="background:#378ADD"></div>${conn}</div><div class="ev-body"><div class="ev-title"><i class="ti ti-train" style="color:var(--blue);font-size:12px"></i> ${ev.trainType||''}</div><div class="train-chip"><i class="ti ti-arrow-right" style="font-size:11px"></i> ${ev.from} → ${ev.to}${ev.arrive?` <b>抵達 ${ev.arrive}</b>`:''}</div>${warn}${mapH}<button class="ev-edit" onclick="openAddEvent(${i},${ei});event.stopPropagation()"><i class="ti ti-edit"></i></button></div></div></div>`;
+        return`<div class="ev-wrap" ${drag}><div class="ev"><div class="drag-handle"><i class="ti ti-grip-vertical"></i></div><div class="ev-time" style="color:var(--blue);font-weight:700">${ev.depart||''}</div><div class="ev-line"><div class="ev-dot" style="background:#378ADD"></div>${conn}</div><div class="ev-body" onclick="openAddEvent(${i},${ei})" style="cursor:pointer"><div class="ev-title"><i class="ti ti-train" style="color:var(--blue);font-size:12px"></i> ${ev.trainType||''}</div><div class="train-chip"><i class="ti ti-arrow-right" style="font-size:11px"></i> ${ev.from} → ${ev.to}${ev.arrive?` <b>抵達 ${ev.arrive}</b>`:''}</div>${warn}${mapH}</div></div></div>`;
       }
       const mapH=ev.mapUrl?`<a class="map-btn" href="${ev.mapUrl}" target="_blank"><i class="ti ti-brand-google-maps"></i> 導航</a>`:'';
-      return`<div class="ev-wrap" ${drag}><div class="ev"><div class="drag-handle"><i class="ti ti-grip-vertical"></i></div><div class="ev-time">${ev.time||''}</div><div class="ev-line"><div class="ev-dot" style="background:${c[1]}"></div>${conn}</div><div class="ev-body"><div class="ev-title">${ev.title}</div>${ev.note?`<div class="ev-note">${ev.note}</div>`:''}${mapH}</div></div></div>`;
+      return`<div class="ev-wrap" ${drag}><div class="ev"><div class="drag-handle"><i class="ti ti-grip-vertical"></i></div><div class="ev-time">${ev.time||''}</div><div class="ev-line"><div class="ev-dot" style="background:${c[1]}"></div>${conn}</div><div class="ev-body" onclick="openAddEvent(${i},${ei})" style="cursor:pointer"><div class="ev-title">${ev.title}</div>${ev.note?`<div class="ev-note">${ev.note}</div>`:''}${mapH}</div></div></div>`;
     }).join('');
     return`<div class="daycard" id="dc-${i}"><div class="day-hdr" onclick="toggleDay(${i})"><div class="day-num" style="background:${c[0]};color:${c[1]}">${i+1}</div><div class="day-meta"><div class="day-name">${d.date}&ensp;${d.title}</div>${d.sub?`<div class="day-sub">${d.sub}</div>`:''}</div><div class="day-badges">${badges}</div><button class="day-edit-btn" onclick="openAddDay(${i});event.stopPropagation()" aria-label="編輯"><i class="ti ti-edit"></i></button><i class="ti ti-chevron-down chev" id="chev-${i}"></i></div><div class="day-body" id="db-${i}" style="display:none">${evs}<button class="add-ev-btn" onclick="openAddEvent(${i},null)"><i class="ti ti-plus"></i> 新增項目</button></div></div>`;
   }).join('');
