@@ -162,6 +162,9 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--blue)}
   .ev-body { position:relative; }
   .ev-body[onclick]:active { opacity:0.7; }
 
+
+  .route-btn { padding:5px 10px;font-size:11px;font-weight:600;border-radius:20px;border:1px solid var(--border2);background:var(--bg);color:var(--text2);cursor:pointer;font-family:inherit;white-space:nowrap; }
+  .route-btn:active { background:var(--blue-bg);color:var(--blue);border-color:#B5D4F4; }
 </style>
 </head>
 <body>
@@ -288,6 +291,20 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--blue)}
       <label class="flabel">車種</label><input type="text" id="tr-type" placeholder="例：Skyliner / のぞみ 新幹線">
       <label class="flabel">預估車程時間</label>
       <div style="display:flex;align-items:center;gap:10px;margin-top:6px"><input type="text" id="tr-duration" placeholder="90" style="width:70px" oninput="autoFillArrive()"><span style="font-size:13px;color:var(--text2)">分鐘（自動算抵達時間）</span></div>
+      <div style="margin-top:8px">
+        <div style="font-size:11px;font-weight:700;color:var(--text3);margin-bottom:6px">常用路線快選</div>
+        <div style="display:flex;flex-wrap:wrap;gap:5px" id="route-suggestions">
+          <button class="route-btn" onclick="pickRoute('上野','成田機場','Skyliner',41)">上野→成田 41分</button>
+          <button class="route-btn" onclick="pickRoute('上野','船橋','JR',20)">上野→船橋 20分</button>
+          <button class="route-btn" onclick="pickRoute('上野','目黑','地鐵日比谷線',25)">上野→目黑 25分</button>
+          <button class="route-btn" onclick="pickRoute('上野','熱海','新幹線',90)">上野→熱海 90分</button>
+          <button class="route-btn" onclick="pickRoute('東京','京都','新幹線のぞみ',135)">東京→京都 135分</button>
+          <button class="route-btn" onclick="pickRoute('東京','大阪','新幹線のぞみ',155)">東京→大阪 155分</button>
+          <button class="route-btn" onclick="pickRoute('上野','羽田機場','京急線',60)">上野→羽田 60分</button>
+          <button class="route-btn" onclick="pickRoute('熱海','東京','新幹線',50)">熱海→東京 50分</button>
+          <button class="route-btn" onclick="pickRoute('船橋','東京','JR',30)">船橋→東京 30分</button>
+        </div>
+      </div>
       <label class="flabel">最晚幾分鐘前到站</label>
       <div style="display:flex;align-items:center;gap:10px;margin-top:6px"><input type="text" id="tr-warn" placeholder="20" style="width:70px"><span style="font-size:13px;color:var(--text2)">分鐘前到站</span></div>
     </div>
@@ -609,6 +626,15 @@ function addMinutes(timeStr, mins) {
   while (m >= 60) { m -= 60; h++; }
   if (h >= 24) h -= 24;
   return h + ':' + (m < 10 ? '0' : '') + m;
+}
+
+
+function pickRoute(from, to, trainType, mins) {
+  document.getElementById('tr-from').value = from;
+  document.getElementById('tr-to').value = to;
+  document.getElementById('tr-type').value = trainType;
+  document.getElementById('tr-duration').value = mins;
+  autoFillArrive();
 }
 
 function autoFillArrive() {
@@ -969,6 +995,12 @@ function saveEvent(){
   else{const ft=document.getElementById('fl-title').value.trim();if(!ft){toast('請填寫標題');return;}ev.time=(document.getElementById('fl-time').value.trim().split('–')[0]||'').trim();ev.flexTime=document.getElementById('fl-time').value.trim();ev.flexTitle=ft;ev.flexItems=document.getElementById('fl-items').value.split('\n').map(s=>s.trim()).filter(Boolean);ev.segColor=Object.assign({},G.segColor);}
   if(!G.days[G.curDay].events)G.days[G.curDay].events=[];
   if(editEvIdx===null)G.days[G.curDay].events.push(ev);else G.days[G.curDay].events[editEvIdx]=ev;
+  // Sort by time after save
+  G.days[G.curDay].events.sort((a,b)=>{
+    const ta=a.time||a.depart||'99:99';
+    const tb=b.time||b.depart||'99:99';
+    return ta.localeCompare(tb);
+  });
   scheduleSave();renderDays();closeModal('modal-event');
   setTimeout(()=>{const db=document.getElementById('db-'+G.curDay);if(db&&db.style.display!=='block')toggleDay(G.curDay);},60);
 }
