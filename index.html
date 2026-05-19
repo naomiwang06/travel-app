@@ -204,7 +204,7 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--blue)}
     <div id="tp-pack" class="tp">
       <div class="slabel">行李清單</div>
       <div id="pack-list"></div>
-      <button class="add-day-btn" onclick="openModal('modal-pack')"><i class="ti ti-plus"></i> 新增物品</button>
+      <button class="add-day-btn" onclick="openAddPack()"><i class="ti ti-plus"></i> 新增物品</button>
     </div>
     <div id="tp-notes" class="tp">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
@@ -283,9 +283,11 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--blue)}
       <div id="ev-place-sel" class="sel-place"></div>
     </div>
     <div id="ev-train-fields" style="display:none">
-      <div class="row2" style="margin-top:10px"><div><label class="flabel" style="margin-top:0">出發時間</label><input type="text" id="tr-depart" placeholder="14:33"></div><div><label class="flabel" style="margin-top:0">抵達時間</label><input type="text" id="tr-arrive" placeholder="17:04"></div></div>
+      <div class="row2" style="margin-top:10px"><div><label class="flabel" style="margin-top:0">出發時間</label><input type="text" id="tr-depart" placeholder="14:33" oninput="autoFillArrive()"></div><div><label class="flabel" style="margin-top:0">抵達時間</label><input type="text" id="tr-arrive" placeholder="17:04"></div></div>
       <div class="row2"><div><label class="flabel">出發站</label><input type="text" id="tr-from" placeholder="東京站"></div><div><label class="flabel">抵達站</label><input type="text" id="tr-to" placeholder="京都站"></div></div>
       <label class="flabel">車種</label><input type="text" id="tr-type" placeholder="例：Skyliner / のぞみ 新幹線">
+      <label class="flabel">預估車程時間</label>
+      <div style="display:flex;align-items:center;gap:10px;margin-top:6px"><input type="text" id="tr-duration" placeholder="90" style="width:70px" oninput="autoFillArrive()"><span style="font-size:13px;color:var(--text2)">分鐘（自動算抵達時間）</span></div>
       <label class="flabel">最晚幾分鐘前到站</label>
       <div style="display:flex;align-items:center;gap:10px;margin-top:6px"><input type="text" id="tr-warn" placeholder="20" style="width:70px"><span style="font-size:13px;color:var(--text2)">分鐘前到站</span></div>
     </div>
@@ -368,7 +370,11 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--blue)}
     <h3>新增行李物品</h3>
     <label class="flabel">物品名稱</label><input type="text" id="pk-name" placeholder="例：護照">
     <label class="flabel">負責人</label><select id="pk-who"><option value="a">旅伴 A</option><option value="b">旅伴 B</option><option value="both">兩人都帶</option></select>
-    <label class="flabel">分類</label><select id="pk-cat"><option>證件 &amp; 票券</option><option>電子產品</option><option>藥品 &amp; 日用品</option><option>衣物</option><option>其他</option></select>
+    <label class="flabel">分類</label>
+    <div style="display:flex;gap:8px;margin-bottom:0">
+      <select id="pk-cat" style="flex:1"></select>
+      <button onclick="openAddPackCat()" style="padding:10px 12px;background:var(--blue-bg);color:var(--blue);border:1px solid #B5D4F4;border-radius:var(--rs);font-size:13px;cursor:pointer;white-space:nowrap;font-family:inherit;font-weight:700">+ 新分類</button>
+    </div>
     <div class="mactions"><button class="btn-g" onclick="closeModal('modal-pack')">取消</button><button class="btn-p" onclick="savePack()">儲存</button></div>
   </div>
 </div>
@@ -418,6 +424,46 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--blue)}
 </div>
 
 <!-- Context Menu -->
+
+<div class="modal-overlay" id="modal-pack-edit" onclick="overlayClose(event,'modal-pack-edit')">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <h3>編輯物品</h3>
+    <label class="flabel">物品名稱</label>
+    <input type="text" id="pke-name" placeholder="例：護照">
+    <label class="flabel">負責人</label>
+    <select id="pke-who">
+      <option value="a">旅伴 A</option>
+      <option value="b">旅伴 B</option>
+      <option value="both">兩人都帶</option>
+    </select>
+    <label class="flabel">分類</label>
+    <div style="display:flex;gap:8px">
+      <select id="pke-cat" style="flex:1"></select>
+      <button onclick="openAddPackCat()" style="padding:10px 12px;background:var(--blue-bg);color:var(--blue);border:1px solid #B5D4F4;border-radius:var(--rs);font-size:13px;cursor:pointer;white-space:nowrap;font-family:inherit;font-weight:700">+ 新分類</button>
+    </div>
+    <div class="mactions">
+      <button class="btn-d" onclick="delPackEdit()"><i class="ti ti-trash"></i></button>
+      <button class="btn-g" onclick="closeModal('modal-pack-edit')">取消</button>
+      <button class="btn-p" onclick="savePackEdit()">儲存</button>
+    </div>
+  </div>
+</div>
+
+
+<div class="modal-overlay" id="modal-pack-cat" onclick="overlayClose(event,'modal-pack-cat')">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <h3>新增分類</h3>
+    <label class="flabel">分類名稱</label>
+    <input type="text" id="new-cat-name" placeholder="例：相機器材、藥品、紀念品…">
+    <div class="mactions">
+      <button class="btn-g" onclick="closeModal('modal-pack-cat')">取消</button>
+      <button class="btn-p" onclick="saveNewPackCat()">新增</button>
+    </div>
+  </div>
+</div>
+
 <div class="ctx-backdrop" id="ctx-backdrop" onclick="closeCtx()"></div>
 <div class="ctx-menu" id="ctx-menu">
   <div class="ctx-item" onclick="ctxAction('edit')"><i class="ti ti-edit"></i> 編輯</div>
@@ -443,7 +489,7 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--blue)}
 // ═══════════════════════════════════════════════
 // DATA
 // ═══════════════════════════════════════════════
-const FIREBASE_URL = 'https://travel2026-f836d-default-rtdb.firebaseio.com/'; // ← 把這裡換成你的 Firebase URL
+const FIREBASE_URL = 'https://travel2026-f836d-default-rtdb.firebaseio.com'; // ← 把這裡換成你的 Firebase URL
 
 const INIT = {
   days:[
@@ -515,6 +561,7 @@ let noteCatFilter='all',curNoteCat='food';
 let ctxState={type:null,dayIdx:null,evIdx:null};
 let pressTimer=null,fabOpen=false,osmTimer=null;
 let aiParsedNotes=[];
+let editPackCat=null,editPackIdx=null;
 
 // ═══════════════════════════════════════════════
 // CONSTANTS
@@ -551,6 +598,25 @@ async function loadFirebase(code){
 // ═══════════════════════════════════════════════
 // RENDER — all render functions FIRST
 // ═══════════════════════════════════════════════
+
+function addMinutes(timeStr, mins) {
+  if (!timeStr || !mins) return '';
+  const p = timeStr.split(':');
+  if (p.length < 2) return '';
+  let h = parseInt(p[0]), m = parseInt(p[1]) + parseInt(mins);
+  while (m >= 60) { m -= 60; h++; }
+  if (h >= 24) h -= 24;
+  return h + ':' + (m < 10 ? '0' : '') + m;
+}
+
+function autoFillArrive() {
+  const dep = document.getElementById('tr-depart').value.trim();
+  const dur = document.getElementById('tr-duration').value.trim();
+  if (dep && dur) {
+    const arrive = addMinutes(dep, dur);
+    if (arrive) document.getElementById('tr-arrive').value = arrive;
+  }
+}
 function calcWarn(dep,mins){
   if(!dep||!mins)return'';
   const p=dep.split(':');if(p.length<2)return'';
@@ -578,7 +644,7 @@ function renderDays(){
         const wt=ev.warnMin&&ev.depart?calcWarn(ev.depart,ev.warnMin):'';
         const warn=wt?`<div class="warn-chip"><i class="ti ti-alarm" style="font-size:11px"></i> 最晚 ${wt} 到站（${ev.warnMin} 分前）</div>`:'';
         const mapH=ev.mapUrl?`<a class="map-btn" href="${ev.mapUrl}" target="_blank"><i class="ti ti-brand-google-maps"></i> 前往${ev.from}</a>`:'';
-        return`<div class="ev-wrap" ${drag}><div class="ev"><div class="drag-handle"><i class="ti ti-grip-vertical"></i></div><div class="ev-time" style="color:var(--blue);font-weight:700">${ev.depart||''}</div><div class="ev-line"><div class="ev-dot" style="background:#378ADD"></div>${conn}</div><div class="ev-body" onclick="openAddEvent(${i},${ei})" style="cursor:pointer"><div class="ev-title"><i class="ti ti-train" style="color:var(--blue);font-size:12px"></i> ${ev.trainType||''}</div><div class="train-chip"><i class="ti ti-arrow-right" style="font-size:11px"></i> ${ev.from} → ${ev.to}${ev.arrive?` <b>抵達 ${ev.arrive}</b>`:''}</div>${warn}${mapH}</div></div></div>`;
+        return`<div class="ev-wrap" ${drag}><div class="ev"><div class="drag-handle"><i class="ti ti-grip-vertical"></i></div><div class="ev-time" style="color:var(--blue);font-weight:700">${ev.depart||''}</div><div class="ev-line"><div class="ev-dot" style="background:#378ADD"></div>${conn}</div><div class="ev-body" onclick="openAddEvent(${i},${ei})" style="cursor:pointer"><div class="ev-title"><i class="ti ti-train" style="color:var(--blue);font-size:12px"></i> ${ev.trainType||''}</div><div class="train-chip"><i class="ti ti-arrow-right" style="font-size:11px"></i> ${ev.from} → ${ev.to}${ev.duration?` <span style="color:var(--text3)">約 ${ev.duration} 分</span>`:''}${ev.arrive?` <b>抵達 ${ev.arrive}</b>`:''}</div>${warn}${mapH}</div></div></div>`;
       }
       const mapH=ev.mapUrl?`<a class="map-btn" href="${ev.mapUrl}" target="_blank"><i class="ti ti-brand-google-maps"></i> 導航</a>`:'';
       return`<div class="ev-wrap" ${drag}><div class="ev"><div class="drag-handle"><i class="ti ti-grip-vertical"></i></div><div class="ev-time">${ev.time||''}</div><div class="ev-line"><div class="ev-dot" style="background:${c[1]}"></div>${conn}</div><div class="ev-body" onclick="openAddEvent(${i},${ei})" style="cursor:pointer"><div class="ev-title">${ev.title}</div>${ev.note?`<div class="ev-note">${ev.note}</div>`:''}${mapH}</div></div></div>`;
@@ -639,6 +705,78 @@ function renderAccom(){
   setTimeout(()=>document.querySelectorAll('.accard').forEach((el,i)=>attachLp(el,'accom',null,i)),50);
 }
 
+
+
+// Default pack categories
+const DEFAULT_PACK_CATS = ['證件 & 票券','電子產品','藥品 & 日用品','衣物','其他'];
+
+function getPackCats() {
+  // Get all existing categories from G.packs + defaults
+  const existing = Object.keys(G.packs || {});
+  const all = [...DEFAULT_PACK_CATS];
+  existing.forEach(c => { if (!all.includes(c)) all.push(c); });
+  return all;
+}
+
+function refreshPackCatSelects() {
+  const cats = getPackCats();
+  ['pk-cat', 'pke-cat'].forEach(id => {
+    const sel = document.getElementById(id);
+    if (!sel) return;
+    const cur = sel.value;
+    sel.innerHTML = cats.map(c => `<option value="${c}">${c}</option>`).join('');
+    if (cur && cats.includes(cur)) sel.value = cur;
+  });
+}
+
+function openAddPackCat() {
+  document.getElementById('new-cat-name').value = '';
+  openModal('modal-pack-cat');
+}
+
+function saveNewPackCat() {
+  const name = document.getElementById('new-cat-name').value.trim();
+  if (!name) { toast('請填寫分類名稱'); return; }
+  if (!G.packs[name]) G.packs[name] = [];
+  closeModal('modal-pack-cat');
+  refreshPackCatSelects();
+  // Set the new cat as selected in both selects
+  ['pk-cat','pke-cat'].forEach(id => {
+    const sel = document.getElementById(id);
+    if (sel) sel.value = name;
+  });
+  toast('已新增分類「' + name + '」');
+}
+
+function openPackEdit(cat, idx) {
+  editPackCat = cat;
+  editPackIdx = idx;
+  const it = G.packs[cat][idx];
+  refreshPackCatSelects();
+  document.getElementById('pke-name').value = it.name || '';
+  document.getElementById('pke-who').value = it.who || 'a';
+  document.getElementById('pke-cat').value = cat;
+  openModal('modal-pack-edit');
+}
+function savePackEdit() {
+  const n = document.getElementById('pke-name').value.trim();
+  if (!n) { toast('請填寫物品名稱'); return; }
+  const newCat = document.getElementById('pke-cat').value;
+  const who = document.getElementById('pke-who').value;
+  const done = G.packs[editPackCat][editPackIdx].done;
+  // Remove from old category
+  G.packs[editPackCat].splice(editPackIdx, 1);
+  // Add to new category
+  if (!G.packs[newCat]) G.packs[newCat] = [];
+  G.packs[newCat].push({ name: n, who, done });
+  scheduleSave(); renderPack(); closeModal('modal-pack-edit');
+}
+function delPackEdit() {
+  if (!confirm('確定刪除？')) return;
+  G.packs[editPackCat].splice(editPackIdx, 1);
+  scheduleSave(); renderPack(); closeModal('modal-pack-edit');
+}
+
 function renderPack(){
   const el=document.getElementById('pack-list');
   const cats=G.packs||{},keys=Object.keys(cats).filter(k=>cats[k]&&cats[k].length);
@@ -649,9 +787,9 @@ function renderPack(){
       const wc=it.who==='a'?'who-a':it.who==='b'?'who-b':'who-a';
       const wl=it.who==='a'?'A':it.who==='b'?'B':'兩人';
       const ck=it.done?'<i class="ti ti-check" style="font-size:11px;color:#fff"></i>':'';
-      return`<div class="pack-item"><div class="pack-check ${it.done?'on':''}" onclick="togglePack('${cat}',${ii})">${ck}</div><span class="pack-label${it.done?' done':''}">${it.name}</span><span class="who-badge ${wc}">${wl}</span><button class="pack-del" onclick="delPack('${cat}',${ii})"><i class="ti ti-trash"></i></button></div>`;
+      return`<div class="pack-item"><div class="pack-check ${it.done?'on':''}" onclick="togglePack('${cat}',${ii})">${ck}</div><span class="pack-label${it.done?' done':''}" onclick="openPackEdit('${cat}',${ii})" style="cursor:pointer">${it.name}</span><span class="who-badge ${wc}" onclick="openPackEdit('${cat}',${ii})" style="cursor:pointer">${wl}</span><button class="pack-del" onclick="delPack('${cat}',${ii})"><i class="ti ti-trash"></i></button></div>`;
     }).join('');
-    return`<div class="pack-card"><div class="pack-hdr" onclick="togglePack_('pb-${ci}','pc-${ci}')"><div class="pack-icon"><i class="ti ${PACK_ICO[ci%PACK_ICO.length]}" style="font-size:15px;color:var(--green)"></i></div><span style="flex:1;font-size:14px;font-weight:700;color:var(--text)">${cat}</span><span style="font-size:13px;color:var(--text3)">${done}/${items.length}</span><i class="ti ti-chevron-down chev" id="pc-${ci}"></i></div><div class="pack-body" id="pb-${ci}" style="display:none">${iH}</div></div>`;
+    return`<div class="pack-card"><div class="pack-hdr" onclick="togglePack_('pb-${ci}','pc-${ci}')"><div class="pack-icon"><i class="ti ${PACK_ICO[ci%PACK_ICO.length]}" style="font-size:15px;color:var(--green)"></i></div><span style="flex:1;font-size:14px;font-weight:700;color:var(--text)">${cat}</span><span style="font-size:13px;color:var(--text3)">${done}/${items.length}</span>${!DEFAULT_PACK_CATS.includes(cat)&&items.length===0?`<button style="border:none;background:transparent;color:var(--text3);cursor:pointer;font-size:13px;padding:4px 6px" onclick="delPackCat('${cat}');event.stopPropagation()"><i class='ti ti-trash'></i></button>`:''}<i class="ti ti-chevron-down chev" id="pc-${ci}"></i></div><div class="pack-body" id="pb-${ci}" style="display:none">${iH}</div></div>`;
   }).join('');
 }
 function togglePack_(bid,cid){const b=document.getElementById(bid),c=document.getElementById(cid),o=b.style.display==='block';b.style.display=o?'none':'block';if(c)c.classList.toggle('open',!o);}
@@ -810,13 +948,13 @@ function openAddEvent(dayIdx,evIdx){
   editEvIdx=evIdx;G.curDay=dayIdx;G.selPlace.ev=null;
   document.getElementById('ev-modal-title').textContent=evIdx===null?'新增項目':'編輯項目';
   document.getElementById('ev-del-btn').style.display=evIdx===null?'none':'block';
-  ['ev-time','ev-title','ev-note','ev-place-q','tr-depart','tr-arrive','tr-from','tr-to','tr-type','tr-warn','fl-time','fl-title','fl-items'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+  ['ev-time','ev-title','ev-note','ev-place-q','tr-depart','tr-arrive','tr-from','tr-to','tr-type','tr-duration','tr-warn','fl-time','fl-title','fl-items'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
   document.getElementById('ev-place-results').style.display='none';
   document.getElementById('ev-place-sel').style.display='none';
   if(evIdx!==null){
     const ev=G.days[dayIdx].events[evIdx];setEvType(ev.type||'normal');
     if(ev.type==='normal'){document.getElementById('ev-time').value=ev.time||'';document.getElementById('ev-title').value=ev.title||'';document.getElementById('ev-note').value=ev.note||'';if(ev.mapUrl){document.getElementById('ev-place-sel').textContent='已儲存地圖連結';document.getElementById('ev-place-sel').style.display='block';G.selPlace.ev={url:ev.mapUrl};}}
-    else if(ev.type==='train'){document.getElementById('tr-depart').value=ev.depart||'';document.getElementById('tr-arrive').value=ev.arrive||'';document.getElementById('tr-from').value=ev.from||'';document.getElementById('tr-to').value=ev.to||'';document.getElementById('tr-type').value=ev.trainType||'';document.getElementById('tr-warn').value=ev.warnMin||'';}
+    else if(ev.type==='train'){document.getElementById('tr-depart').value=ev.depart||'';document.getElementById('tr-arrive').value=ev.arrive||'';document.getElementById('tr-from').value=ev.from||'';document.getElementById('tr-to').value=ev.to||'';document.getElementById('tr-type').value=ev.trainType||'';document.getElementById('tr-duration').value=ev.duration||'';document.getElementById('tr-warn').value=ev.warnMin||'';}
     else if(ev.type==='flex'){document.getElementById('fl-time').value=ev.flexTime||'';document.getElementById('fl-title').value=ev.flexTitle||'';document.getElementById('fl-items').value=(ev.flexItems||[]).join('\n');if(ev.segColor){G.segColor=ev.segColor;document.querySelectorAll('.swatch').forEach(s=>s.classList.toggle('on',s.dataset.c===ev.segColor.c));}}
   }else setEvType('normal');
   openModal('modal-event');
@@ -824,7 +962,7 @@ function openAddEvent(dayIdx,evIdx){
 function saveEvent(){
   const ev={type:G.evType};
   if(G.evType==='normal'){const t=document.getElementById('ev-title').value.trim();if(!t){toast('請填寫名稱');return;}ev.time=document.getElementById('ev-time').value.trim();ev.title=t;ev.note=document.getElementById('ev-note').value.trim();ev.mapUrl=G.selPlace.ev?G.selPlace.ev.url:(editEvIdx!==null&&G.days[G.curDay]?.events[editEvIdx]?G.days[G.curDay].events[editEvIdx].mapUrl||'':'');}
-  else if(G.evType==='train'){const fr=document.getElementById('tr-from').value.trim(),to=document.getElementById('tr-to').value.trim();if(!fr||!to){toast('請填寫出發站與抵達站');return;}ev.time=document.getElementById('tr-depart').value.trim();ev.depart=ev.time;ev.arrive=document.getElementById('tr-arrive').value.trim();ev.from=fr;ev.to=to;ev.trainType=document.getElementById('tr-type').value.trim();ev.warnMin=parseInt(document.getElementById('tr-warn').value)||0;ev.mapUrl=G.selPlace.ev?G.selPlace.ev.url:'https://www.google.com/maps/search/?api=1&query='+encodeURIComponent(fr);}
+  else if(G.evType==='train'){const fr=document.getElementById('tr-from').value.trim(),to=document.getElementById('tr-to').value.trim();if(!fr||!to){toast('請填寫出發站與抵達站');return;}ev.time=document.getElementById('tr-depart').value.trim();ev.depart=ev.time;ev.arrive=document.getElementById('tr-arrive').value.trim();ev.from=fr;ev.to=to;ev.trainType=document.getElementById('tr-type').value.trim();ev.duration=parseInt(document.getElementById('tr-duration').value)||0;ev.warnMin=parseInt(document.getElementById('tr-warn').value)||0;ev.mapUrl=G.selPlace.ev?G.selPlace.ev.url:'https://www.google.com/maps/search/?api=1&query='+encodeURIComponent(fr);}
   else{const ft=document.getElementById('fl-title').value.trim();if(!ft){toast('請填寫標題');return;}ev.time=(document.getElementById('fl-time').value.trim().split('–')[0]||'').trim();ev.flexTime=document.getElementById('fl-time').value.trim();ev.flexTitle=ft;ev.flexItems=document.getElementById('fl-items').value.split('\n').map(s=>s.trim()).filter(Boolean);ev.segColor=Object.assign({},G.segColor);}
   if(!G.days[G.curDay].events)G.days[G.curDay].events=[];
   if(editEvIdx===null)G.days[G.curDay].events.push(ev);else G.days[G.curDay].events[editEvIdx]=ev;
@@ -853,6 +991,19 @@ function delLuggage(i){if(!confirm('確定刪除？'))return;G.luggage.splice(i,
 // ═══════════════════════════════════════════════
 // CRUD — Pack
 // ═══════════════════════════════════════════════
+
+function delPackCat(cat) {
+  if (G.packs[cat] && G.packs[cat].length > 0) { toast('請先移除此分類內的所有物品'); return; }
+  if (!confirm('確定刪除分類「' + cat + '」？')) return;
+  delete G.packs[cat];
+  scheduleSave(); renderPack();
+}
+
+function openAddPack() {
+  refreshPackCatSelects();
+  document.getElementById('pk-name').value = '';
+  openModal('modal-pack');
+}
 function savePack(){const n=document.getElementById('pk-name').value.trim();if(!n){toast('請填寫物品名稱');return;}const cat=document.getElementById('pk-cat').value;if(!G.packs[cat])G.packs[cat]=[];G.packs[cat].push({name:n,who:document.getElementById('pk-who').value,done:false});scheduleSave();renderPack();closeModal('modal-pack');}
 function delPack(cat,idx){if(!confirm('確定刪除？'))return;G.packs[cat].splice(idx,1);scheduleSave();renderPack();}
 
