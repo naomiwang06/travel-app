@@ -393,6 +393,8 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--blue)}
     <label class="flabel">標題</label><input type="text" id="n-title" placeholder="例：上野海鮮丼">
     <label class="flabel">內容 / 說明</label><textarea id="n-body" rows="3" style="resize:none" placeholder="地址、開放時間、推薦品項…"></textarea>
     <label class="flabel">相關日期（選填）</label><input type="text" id="n-day" placeholder="例：5/24 熱海">
+    <label class="flabel">網址（選填）</label>
+    <input type="text" id="n-url" placeholder="例：https://tabelog.com/...">
     <label class="flabel">地點搜尋（選填）</label>
     <div style="position:relative"><input type="text" id="n-place-q" placeholder="輸入地點搜尋…" style="padding-right:38px" oninput="searchPlace('n')"><i class="ti ti-search" style="position:absolute;right:12px;top:50%;transform:translateY(-50%);color:var(--text3);font-size:15px;pointer-events:none"></i></div>
     <div id="n-place-results" class="search-results"></div>
@@ -808,8 +810,9 @@ function renderNotes(){
     const ci=NOTE_CATS[cat];
     groups[cat].forEach(n=>{
       const realIdx=G.notes.indexOf(n);
-      const mH=n.mapUrl?`<a class="note-map" href="${n.mapUrl}" target="_blank"><i class="ti ti-brand-google-maps"></i> 導航</a>`:'';
-      html+=`<div class="note-card" onclick="openAddNote(${realIdx})" style="cursor:pointer"><div class="note-cat-tag" style="background:${ci.bg};color:${ci.color}">${ci.label}</div><div class="note-title">${n.title}</div>${n.body?`<div class="note-body">${n.body}</div>`:''}${mH}${n.day?`<div class="note-day-tag"><i class="ti ti-calendar" style="font-size:11px"></i> ${n.day}</div>`:''}</div>`;
+      const mH=n.mapUrl?`<a class="note-map" href="${n.mapUrl}" target="_blank" onclick="event.stopPropagation()"><i class="ti ti-brand-google-maps"></i> 導航</a>`:'';
+      const lH=n.linkUrl?`<a class="note-map" href="${n.linkUrl}" target="_blank" onclick="event.stopPropagation()" style="background:var(--purple-bg);color:var(--purple)"><i class="ti ti-world"></i> 開啟連結</a>`:'';
+      html+=`<div class="note-card" onclick="openAddNote(${realIdx})" style="cursor:pointer"><div class="note-cat-tag" style="background:${ci.bg};color:${ci.color}">${ci.label}</div><div class="note-title">${n.title}</div>${n.body?`<div class="note-body">${n.body}</div>`:''}<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:${n.body?'5px':'2px'}">${mH}${lH}</div>${n.day?`<div class="note-day-tag"><i class="ti ti-calendar" style="font-size:11px"></i> ${n.day}</div>`:''}</div>`;
     });
   });
   el.innerHTML=html;
@@ -1012,8 +1015,8 @@ function delPack(cat,idx){if(!confirm('確定刪除？'))return;G.packs[cat].spl
 // ═══════════════════════════════════════════════
 function filterNotes(cat,el){noteCatFilter=cat;document.querySelectorAll('#note-cat-tabs .note-cat-btn').forEach(b=>b.classList.remove('on'));el.classList.add('on');renderNotes();}
 function setNoteCat(cat,el){curNoteCat=cat;document.querySelectorAll('#ncat-food,#ncat-shop,#ncat-place,#ncat-memo').forEach(b=>b.classList.remove('on'));el.classList.add('on');}
-function openAddNote(idx){editNoteIdx=idx;document.getElementById('note-modal-title').textContent=idx===null?'新增筆記':'編輯筆記';document.getElementById('note-del-btn').style.display=idx===null?'none':'block';G.selPlace.n=null;document.getElementById('n-place-results').style.display='none';document.getElementById('n-place-sel').style.display='none';if(idx!==null){const n=G.notes[idx];setNoteCat(n.cat,document.getElementById('ncat-'+n.cat));document.getElementById('n-title').value=n.title||'';document.getElementById('n-body').value=n.body||'';document.getElementById('n-day').value=n.day||'';if(n.mapUrl){document.getElementById('n-place-sel').textContent='已儲存地圖連結';document.getElementById('n-place-sel').style.display='block';G.selPlace.n={url:n.mapUrl};}}else{setNoteCat('food',document.getElementById('ncat-food'));['n-title','n-body','n-day'].forEach(id=>document.getElementById(id).value='');}openModal('modal-note');}
-function saveNote(){const t=document.getElementById('n-title').value.trim();if(!t){toast('請填寫標題');return;}const obj={cat:curNoteCat,title:t,body:document.getElementById('n-body').value.trim(),day:document.getElementById('n-day').value.trim(),mapUrl:G.selPlace.n?G.selPlace.n.url:(editNoteIdx!==null?G.notes[editNoteIdx]?.mapUrl||'':'')};if(!G.notes)G.notes=[];if(editNoteIdx===null)G.notes.push(obj);else G.notes[editNoteIdx]=obj;scheduleSave();renderNotes();closeModal('modal-note');}
+function openAddNote(idx){editNoteIdx=idx;document.getElementById('note-modal-title').textContent=idx===null?'新增筆記':'編輯筆記';document.getElementById('note-del-btn').style.display=idx===null?'none':'block';G.selPlace.n=null;document.getElementById('n-place-results').style.display='none';document.getElementById('n-place-sel').style.display='none';if(idx!==null){const n=G.notes[idx];setNoteCat(n.cat,document.getElementById('ncat-'+n.cat));document.getElementById('n-title').value=n.title||'';document.getElementById('n-body').value=n.body||'';document.getElementById('n-day').value=n.day||'';document.getElementById('n-url').value=n.linkUrl||'';if(n.mapUrl){document.getElementById('n-place-sel').textContent='已儲存地圖連結';document.getElementById('n-place-sel').style.display='block';G.selPlace.n={url:n.mapUrl};}}else{setNoteCat('food',document.getElementById('ncat-food'));['n-title','n-body','n-day','n-url'].forEach(id=>document.getElementById(id).value='');}openModal('modal-note');}
+function saveNote(){const t=document.getElementById('n-title').value.trim();if(!t){toast('請填寫標題');return;}const obj={cat:curNoteCat,title:t,body:document.getElementById('n-body').value.trim(),day:document.getElementById('n-day').value.trim(),linkUrl:document.getElementById('n-url').value.trim(),mapUrl:G.selPlace.n?G.selPlace.n.url:(editNoteIdx!==null?G.notes[editNoteIdx]?.mapUrl||'':'')};if(!G.notes)G.notes=[];if(editNoteIdx===null)G.notes.push(obj);else G.notes[editNoteIdx]=obj;scheduleSave();renderNotes();closeModal('modal-note');}
 function deleteNote(){if(!confirm('確定刪除？'))return;G.notes.splice(editNoteIdx,1);scheduleSave();renderNotes();closeModal('modal-note');}
 
 // ═══════════════════════════════════════════════
