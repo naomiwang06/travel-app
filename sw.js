@@ -1,4 +1,4 @@
-const CACHE_VERSION = 'v1.2';
+const CACHE_VERSION = 'v1.3';
 const CACHE_NAME = 'travel-app-' + CACHE_VERSION;
 
 // Install: cache the main page
