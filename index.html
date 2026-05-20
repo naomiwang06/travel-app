@@ -169,6 +169,24 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--blue)}
   .route-btn { padding:5px 10px;font-size:11px;font-weight:600;border-radius:20px;border:1px solid var(--border2);background:var(--bg);color:var(--text2);cursor:pointer;font-family:inherit;white-space:nowrap; }
   .route-btn:active { background:var(--blue-bg);color:var(--blue);border-color:#B5D4F4; }
 </style>
+
+<script>
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('sw.js').then(reg => {
+    reg.addEventListener('updatefound', () => {
+      const newSW = reg.installing;
+      newSW.addEventListener('statechange', () => {
+        if (newSW.state === 'installed' && navigator.serviceWorker.controller) {
+          // New version available - reload automatically
+          window.location.reload();
+        }
+      });
+    });
+  });
+  // Check for update every time app opens
+  navigator.serviceWorker.ready.then(reg => reg.update());
+}
+</script>
 </head>
 <body>
 <div class="app">
