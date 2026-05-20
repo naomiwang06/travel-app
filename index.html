@@ -6,6 +6,9 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="旅遊規劃">
 <title>旅遊規劃</title>
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.0.0/tabler-icons.min.css">
 <style>
 :root{--bg:#f2f2f7;--card:#fff;--border:rgba(0,0,0,0.1);--border2:rgba(0,0,0,0.2);--text:#1a1a1a;--text2:#555;--text3:#999;--r:12px;--rs:8px;--blue:#185FA5;--blue-bg:#E6F1FB;--green:#0F6E56;--green-bg:#E1F5EE;--amber:#854F0B;--amber-bg:#FAEEDA;--purple:#534AB7;--purple-bg:#EEEDFE;--pink:#993556;--pink-bg:#FBEAF0;--red:#E24B4A;--red-bg:#FCEBEB;--gmap:#1a73e8}
@@ -240,6 +243,7 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--blue)}
     <button onclick="joinRoom()" style="width:100%;padding:12px;background:transparent;color:var(--text2);border:1px solid var(--border2);border-radius:var(--rs);font-size:14px;cursor:pointer;font-family:inherit">加入旅程</button>
     <div style="margin:16px 0 8px;text-align:left">
       <div style="font-size:12px;font-weight:700;color:var(--text2);margin-bottom:8px">旅伴名稱</div>
+    <div style="font-size:11px;color:var(--text3);text-align:right;margin-bottom:4px">版本 <span id="app-ver"></span></div>
       <div style="display:flex;gap:8px">
         <div style="flex:1"><div style="font-size:11px;color:var(--text3);margin-bottom:4px">旅伴 A</div><input type="text" id="name-a-input" placeholder="旅伴 A" style="width:100%" oninput="updateNames()"></div>
         <div style="flex:1"><div style="font-size:11px;color:var(--text3);margin-bottom:4px">旅伴 B</div><input type="text" id="name-b-input" placeholder="旅伴 B" style="width:100%" oninput="updateNames()"></div>
@@ -515,7 +519,8 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--blue)}
 // ═══════════════════════════════════════════════
 // DATA
 // ═══════════════════════════════════════════════
-const FIREBASE_URL = 'https://travel2026-f836d-default-rtdb.firebaseio.com'; // ← 把這裡換成你的 Firebase URL
+const FIREBASE_URL = 'https://travel2026-f836d-default-rtdb.firebaseio.com';
+const APP_VERSION = '1.0'; // ← 把這裡換成你的 Firebase URL
 
 const INIT = {
   days:[
@@ -1148,6 +1153,7 @@ function applyNamesToSync() {
 }
 
 function updateRoomDisplay(){
+  const vEl=document.getElementById('app-ver');if(vEl)vEl.textContent=APP_VERSION;
   document.getElementById('room-code-display').textContent=G.roomCode;
   document.getElementById('sync-code-display').textContent=G.roomCode;
 }
