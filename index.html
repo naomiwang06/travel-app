@@ -845,7 +845,7 @@ function renderPack(){
     const items=cats[cat],done=items.filter(x=>x.done).length;
     const iH=items.map((it,ii)=>{
       const wc=it.who==='a'?'who-a':it.who==='b'?'who-b':'who-a';
-      const wl=it.who==='a'?'A':it.who==='b'?'B':'兩人';
+      const wl=it.who==='a'?(G.nameA||'A'):it.who==='b'?(G.nameB||'B'):'兩人';
       const ck=it.done?'<i class="ti ti-check" style="font-size:11px;color:#fff"></i>':'';
       return`<div class="pack-item"><div class="pack-check ${it.done?'on':''}" onclick="togglePack('${cat}',${ii})">${ck}</div><span class="pack-label${it.done?' done':''}" onclick="openPackEdit('${cat}',${ii})" style="cursor:pointer">${it.name}</span><span class="who-badge ${wc}" onclick="openPackEdit('${cat}',${ii})" style="cursor:pointer">${wl}</span><button class="pack-del" onclick="delPack('${cat}',${ii})"><i class="ti ti-trash"></i></button></div>`;
     }).join('');
