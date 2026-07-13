@@ -543,7 +543,7 @@ if ('serviceWorker' in navigator) {
 // DATA
 // ═══════════════════════════════════════════════
 const FIREBASE_URL = 'https://travel2026-f836d-default-rtdb.firebaseio.com';
-const APP_VERSION = '1.5'; // ← 把這裡換成你的 Firebase URL
+const APP_VERSION = '1.6'; // ← 把這裡換成你的 Firebase URL
 
 const INIT = {
   days:[
@@ -1188,14 +1188,28 @@ function saveTripToHistory(code,title){
   localStorage.setItem('trip_history',JSON.stringify(h));
 }
 function renderTripHistory(){
-  const el=document.getElementById('trip-history-list');if(!el)return;
-  const h=getTripHistory();
-  if(!h.length){el.innerHTML='<div style="font-size:12px;color:var(--text3);padding:4px 0">尚無旅程記錄</div>';return;}
-  el.innerHTML=h.map(t=>{
-    const cur=t.code===G.roomCode;
-    return '<div style="display:flex;align-items:center;gap:8px;padding:9px 12px;background:'+(cur?'var(--blue-bg)':'var(--bg)')+';border-radius:var(--rs);border:1px solid '+(cur?'#B5D4F4':'var(--border)')+'"><div style="flex:1"><div style="font-size:13px;font-weight:700;color:'+(cur?'var(--blue)':'var(--text)')+'">'+t.title+(cur?' （目前）':'')+'</div><div style="font-size:11px;color:var(--text3);margin-top:1px">房間碼：'+t.code+(t.date?' · '+t.date:'')+'</div></div>'+(cur?'':'<button onclick="switchTrip(''+t.code+'')" style="padding:5px 10px;font-size:12px;font-weight:700;border:1px solid var(--border2);border-radius:20px;background:var(--card);color:var(--text2);cursor:pointer;font-family:inherit">切換</button>')+'</div>';
+  var el=document.getElementById('trip-history-list');
+  if(!el)return;
+  var h=getTripHistory();
+  if(!h.length){
+    el.innerHTML='<div style="font-size:12px;color:var(--text3);padding:4px 0">尚無旅程記錄</div>';
+    return;
+  }
+  el.innerHTML=h.map(function(t){
+    var cur=t.code===G.roomCode;
+    var btn=cur?'':'<button onclick="switchTrip(&#39;'+t.code+'&#39;)" style="padding:5px 10px;font-size:12px;font-weight:700;border:1px solid var(--border2);border-radius:20px;background:var(--card);color:var(--text2);cursor:pointer;font-family:inherit">切換</button>';
+    return '<div style="display:flex;align-items:center;gap:8px;padding:9px 12px;'
+      +'background:'+(cur?'var(--blue-bg)':'var(--bg)')
+      +';border-radius:var(--rs);border:1px solid '+(cur?'#B5D4F4':'var(--border)')
+      +'"><div style="flex:1">'
+      +'<div style="font-size:13px;font-weight:700;color:'+(cur?'var(--blue)':'var(--text)')
+      +'">'+t.title+(cur?' (目前)':'')+'</div>'
+      +'<div style="font-size:11px;color:var(--text3);margin-top:1px">房間碼：'+t.code
+      +(t.date?' · '+t.date:'')+'</div>'
+      +'</div>'+btn+'</div>';
   }).join('');
 }
+
 async function switchTrip(code){
   if(code===G.roomCode)return;
   G.roomCode=code;
@@ -1231,7 +1245,7 @@ function updateRoomDisplay(){
   document.getElementById('room-code-display').textContent=G.roomCode;
   document.getElementById('sync-code-display').textContent=G.roomCode;
 }
-function openSync(){document.getElementById('sync-screen').classList.add('open');applyNamesToSync();}
+function openSync(){document.getElementById('sync-screen').classList.add('open');applyNamesToSync();renderTripHistory();}
 function closeSync(){document.getElementById('sync-screen').classList.remove('open');}
 function copyRoomCode(){if(navigator.clipboard)navigator.clipboard.writeText(G.roomCode).catch(()=>{});toast('已複製房間碼 '+G.roomCode);}
 async function joinRoom(){
@@ -1268,6 +1282,7 @@ async function joinRoom(){
   renderAll();
 
   refreshWhoSelects();
+  saveTripToHistory(G.roomCode,'🎵 日本 2025');
   // 5. Open day 1
   setTimeout(()=>{const db=document.getElementById('db-0');if(db){db.style.display='block';document.getElementById('chev-0')?.classList.add('open');}},100);
 
