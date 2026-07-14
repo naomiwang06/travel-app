@@ -272,9 +272,10 @@ if ('serviceWorker' in navigator) {
         <div style="flex:1"><div style="font-size:11px;color:var(--text3);margin-bottom:4px">旅伴 B</div><input type="text" id="name-b-input" placeholder="旅伴 B" style="width:100%" oninput="updateNames()"></div>
       </div>
     </div>
-    <button onclick="closeSync()" style="width:100%;padding:12px;background:var(--bg);color:var(--text2);border:1px solid var(--border2);border-radius:var(--rs);font-size:14px;cursor:pointer;font-family:inherit;margin-top:8px">關閉</button>
+
   </div>
 </div>
+<div class="full-screen-close" id="sync-close-btn"><button onclick="closeSync()" style="width:100%;max-width:430px;margin:0 auto;display:block;padding:13px;background:var(--bg);color:var(--text2);border:1px solid var(--border2);border-radius:var(--rs);font-size:14px;cursor:pointer;font-family:inherit;font-weight:600">關閉</button></div>
 
 <!-- Modals -->
 <div class="modal-overlay" id="modal-day" onclick="overlayClose(event,'modal-day')">
@@ -569,7 +570,7 @@ if ('serviceWorker' in navigator) {
 // DATA
 // ═══════════════════════════════════════════════
 const FIREBASE_URL = 'https://travel2026-f836d-default-rtdb.firebaseio.com';
-const APP_VERSION = '1.9'; // ← 把這裡換成你的 Firebase URL
+const APP_VERSION = '2.0'; // ← 把這裡換成你的 Firebase URL
 
 const INIT = {
   days:[
@@ -1227,6 +1228,16 @@ function saveTripToHistory(code,title){
   if(h.length>10)h=h.slice(0,10);
   localStorage.setItem('trip_history',JSON.stringify(h));
 }
+
+function deleteTripFromHistory(code) {
+  if (code === G.roomCode) {
+    if (!confirm('這是目前的旅程，確定要從清單移除嗎？（Firebase 資料不受影響）')) return;
+  }
+  var h = getTripHistory().filter(function(t){ return t.code !== code; });
+  localStorage.setItem('trip_history', JSON.stringify(h));
+  renderTripHistory();
+}
+
 function renderTripHistory(){
   var el=document.getElementById('trip-history-list');
   if(!el)return;
@@ -1237,16 +1248,12 @@ function renderTripHistory(){
   }
   el.innerHTML=h.map(function(t){
     var cur=t.code===G.roomCode;
-    var btn=cur?'':'<button onclick="switchTrip(&#39;'+t.code+'&#39;)" style="padding:5px 10px;font-size:12px;font-weight:700;border:1px solid var(--border2);border-radius:20px;background:var(--card);color:var(--text2);cursor:pointer;font-family:inherit">切換</button>';
-    return '<div style="display:flex;align-items:center;gap:8px;padding:9px 12px;'
-      +'background:'+(cur?'var(--blue-bg)':'var(--bg)')
-      +';border-radius:var(--rs);border:1px solid '+(cur?'#B5D4F4':'var(--border)')
-      +'"><div style="flex:1">'
-      +'<div style="font-size:13px;font-weight:700;color:'+(cur?'var(--blue)':'var(--text)')
-      +'">'+t.title+(cur?' (目前)':'')+'</div>'
-      +'<div style="font-size:11px;color:var(--text3);margin-top:1px">房間碼：'+t.code
-      +(t.date?' · '+t.date:'')+'</div>'
-      +'</div>'+btn+'</div>';
+    var switchBtn=cur?'':'<button onclick="switchTrip(&#39;'+t.code+'&#39;)" style="padding:5px 10px;font-size:12px;font-weight:700;border:1px solid var(--border2);border-radius:20px;background:var(--card);color:var(--text2);cursor:pointer;font-family:inherit">切換</button>';
+    var delBtn='<button onclick="deleteTripFromHistory(&#39;'+t.code+'&#39;)" style="padding:5px 8px;font-size:12px;border:none;background:transparent;color:var(--text3);cursor:pointer;font-family:inherit" title="從清單移除">✕</button>';
+    var btn=switchBtn+delBtn;
+    return (cur?'':'<a onclick="switchTrip(&#39;'+t.code+'&#39;)" style="text-decoration:none;display:block;cursor:pointer">')
+      +'<div style="display:flex;align-items:center;gap:8px;padding:9px 12px;background:'+(cur?'var(--blue-bg)':'var(--bg)')+';border-radius:var(--rs);border:1px solid '+(cur?'#B5D4F4':'var(--border)')+'"><div style="flex:1"><div style="font-size:13px;font-weight:700;color:'+(cur?'var(--blue)':'var(--text)')+'">'+t.title+(cur?' (目前)':'')+'</div><div style="font-size:11px;color:var(--text3);margin-top:1px">房間碼：'+t.code+(t.date?' · '+t.date:'')+'</div></div>'+btn+'</div>'
+      +(cur?'':'</a>');
   }).join('');
 }
 
@@ -1293,8 +1300,8 @@ function updateRoomDisplay(){
   document.getElementById('room-code-display').textContent=G.roomCode;
   document.getElementById('sync-code-display').textContent=G.roomCode;
 }
-function openSync(){document.getElementById('sync-screen').classList.add('open');applyNamesToSync();renderTripHistory();}
-function closeSync(){document.getElementById('sync-screen').classList.remove('open');}
+function openSync(){document.getElementById('sync-screen').classList.add('open');document.getElementById('sync-close-btn').style.display='block';document.getElementById('sync-close-btn').style.pointerEvents='auto';applyNamesToSync();renderTripHistory();}
+function closeSync(){document.getElementById('sync-screen').classList.remove('open');document.getElementById('sync-close-btn').style.display='none';}
 function copyRoomCode(){if(navigator.clipboard)navigator.clipboard.writeText(G.roomCode).catch(()=>{});toast('已複製房間碼 '+G.roomCode);}
 async function joinRoom(){
   const code=document.getElementById('join-input').value.trim().toUpperCase();
