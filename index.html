@@ -102,7 +102,7 @@ body{font-family:-apple-system,'Helvetica Neue',sans-serif;background:var(--bg);
 .note-map{display:inline-flex;align-items:center;gap:4px;font-size:11px;color:#fff;padding:3px 9px;border-radius:20px;background:var(--gmap);text-decoration:none;margin-top:7px;font-weight:700}
 .note-day-tag{font-size:11px;color:var(--text3);margin-top:6px}
 /* Modal */
-.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.5);display:none;align-items:flex-end;justify-content:center;z-index:200;pointer-events:none}
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.5);display:none;align-items:flex-end;justify-content:center;z-index:400;pointer-events:none}
 .modal-overlay.open{display:flex;pointer-events:auto}
 .modal{background:var(--card);border-radius:var(--r) var(--r) 0 0;padding:20px 20px calc(env(safe-area-inset-bottom,0) + 20px);width:100%;max-width:430px;max-height:90vh;overflow-y:auto}
 .modal-handle{width:36px;height:4px;background:var(--border2);border-radius:2px;margin:-8px auto 16px}
@@ -272,7 +272,7 @@ if ('serviceWorker' in navigator) {
         <div style="flex:1"><div style="font-size:11px;color:var(--text3);margin-bottom:4px">旅伴 B</div><input type="text" id="name-b-input" placeholder="旅伴 B" style="width:100%" oninput="updateNames()"></div>
       </div>
     </div>
-    <button onclick="closeSync()" style="width:100%;padding:12px;background:transparent;color:var(--text3);border:none;font-size:14px;cursor:pointer;font-family:inherit;margin-top:4px">關閉</button>
+    <button onclick="closeSync()" style="width:100%;padding:12px;background:var(--bg);color:var(--text2);border:1px solid var(--border2);border-radius:var(--rs);font-size:14px;cursor:pointer;font-family:inherit;margin-top:8px">關閉</button>
   </div>
 </div>
 
@@ -283,10 +283,11 @@ if ('serviceWorker' in navigator) {
     <h3 id="day-modal-title">新增一天</h3>
     <label class="flabel">日期</label>
     <div style="position:relative">
-      <input type="date" id="d-date-picker" style="position:absolute;opacity:0;width:100%;height:100%;top:0;left:0;cursor:pointer;z-index:1" onchange="onDatePick()">
-      <input type="text" id="d-date" placeholder="點選選擇日期" readonly style="cursor:pointer;padding-right:38px" onclick="document.getElementById('d-date-picker').showPicker?document.getElementById('d-date-picker').showPicker():document.getElementById('d-date-picker').click()">
+      <input type="date" id="d-date-picker" onchange="onDatePick()" style="width:100%;padding:10px 12px;font-size:14px;border:1px solid var(--border2);border-radius:var(--rs);background:var(--bg);color:var(--text);font-family:inherit;-webkit-appearance:none;cursor:pointer">
+      <div id="d-date-display" style="position:absolute;inset:0;padding:10px 38px 10px 12px;font-size:14px;color:var(--text);background:var(--bg);border-radius:var(--rs);pointer-events:none;display:flex;align-items:center"></div>
       <i class="ti ti-calendar" style="position:absolute;right:12px;top:50%;transform:translateY(-50%);color:var(--blue);font-size:17px;pointer-events:none"></i>
     </div>
+    <input type="hidden" id="d-date">
     <label class="flabel">標題</label><input type="text" id="d-title" placeholder="例：抵達東京">
     <label class="flabel">副標題</label><input type="text" id="d-sub" placeholder="例：成田 → 上野">
     <label class="flabel">標籤</label>
@@ -568,7 +569,7 @@ if ('serviceWorker' in navigator) {
 // DATA
 // ═══════════════════════════════════════════════
 const FIREBASE_URL = 'https://travel2026-f836d-default-rtdb.firebaseio.com';
-const APP_VERSION = '1.8'; // ← 把這裡換成你的 Firebase URL
+const APP_VERSION = '1.9'; // ← 把這裡換成你的 Firebase URL
 
 const INIT = {
   days:[
@@ -1019,12 +1020,15 @@ function fabDo(type){
 
 function onDatePick() {
   const val = document.getElementById('d-date-picker').value;
-  if (!val) return;
+  const disp = document.getElementById('d-date-display');
+  if (!val) { if(disp) disp.textContent=''; return; }
   const d = new Date(val + 'T00:00:00');
   const days = ['日','一','二','三','四','五','六'];
   const m = d.getMonth() + 1;
   const day = d.getDate();
-  document.getElementById('d-date').value = m + '/' + day + ' (' + days[d.getDay()] + ')';
+  const formatted = m + '/' + day + ' (' + days[d.getDay()] + ')';
+  document.getElementById('d-date').value = formatted;
+  if(disp) disp.textContent = formatted;
 }
 
 function toggleBadge(el,name){el.classList.toggle('on');const i=G.selBadges.indexOf(name);if(i>-1)G.selBadges.splice(i,1);else G.selBadges.push(name);}
@@ -1035,7 +1039,7 @@ function openAddDay(idx){
   document.getElementById('day-modal-title').textContent=idx===null?'新增一天':'編輯這天';
   document.getElementById('day-del-btn').style.display=idx===null?'none':'block';
   if(idx!==null){const d=G.days[idx];document.getElementById('d-date').value=d.date||'';document.getElementById('d-title').value=d.title||'';document.getElementById('d-sub').value=d.sub||'';G.selBadges=(d.badges||[]).slice();G.selBadges.forEach(b=>document.querySelectorAll('.badge-opt').forEach(btn=>{if(btn.textContent===b)btn.classList.add('on');}));}
-  else{['d-date','d-title','d-sub'].forEach(id=>document.getElementById(id).value='');const p=document.getElementById('d-date-picker');if(p)p.value='';}
+  else{['d-date','d-title','d-sub'].forEach(id=>document.getElementById(id).value='');const p=document.getElementById('d-date-picker');if(p)p.value='';const dd=document.getElementById('d-date-display');if(dd)dd.textContent='';}
   openModal('modal-day');
 }
 function saveDay(){const tl=document.getElementById('d-title').value.trim();if(!tl){toast('請填寫標題');return;}const obj={date:document.getElementById('d-date').value.trim(),title:tl,sub:document.getElementById('d-sub').value.trim(),badges:G.selBadges.slice()};if(editDayIdx===null){obj.events=[];G.days.push(obj);}else{obj.events=G.days[editDayIdx].events||[];G.days[editDayIdx]=obj;}scheduleSave();renderDays();closeModal('modal-day');}
