@@ -250,7 +250,8 @@ if ('serviceWorker' in navigator) {
 
 <!-- Sync Screen -->
 <div class="full-screen" id="sync-screen">
-  <div style="text-align:center;width:100%;max-width:300px">
+  <div class="full-screen-inner">
+  <div style="text-align:center;width:100%;max-width:380px">
     <div style="width:60px;height:60px;background:var(--blue-bg);border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 16px"><i class="ti ti-users" style="font-size:28px;color:var(--blue)"></i></div>
     <h2 style="font-size:20px;font-weight:700;margin-bottom:6px">分享旅程</h2>
     <p style="font-size:14px;color:var(--text2);margin-bottom:4px">把房間碼傳給旅伴，對方輸入後即時同步</p>
@@ -273,7 +274,9 @@ if ('serviceWorker' in navigator) {
       </div>
     </div>
 
+    </div>
   </div>
+  <div class="full-screen-footer"><button onclick="closeSync()" style="width:100%;max-width:380px;display:block;margin:0 auto;padding:13px;background:var(--bg);color:var(--text2);border:1px solid var(--border2);border-radius:var(--rs);font-size:14px;cursor:pointer;font-family:inherit;font-weight:600">關閉</button></div>
 </div>
 <div class="full-screen-close" id="sync-close-btn"><button onclick="closeSync()" style="width:100%;max-width:430px;margin:0 auto;display:block;padding:13px;background:var(--bg);color:var(--text2);border:1px solid var(--border2);border-radius:var(--rs);font-size:14px;cursor:pointer;font-family:inherit;font-weight:600">關閉</button></div>
 
@@ -284,8 +287,8 @@ if ('serviceWorker' in navigator) {
     <h3 id="day-modal-title">新增一天</h3>
     <label class="flabel">日期</label>
     <div style="position:relative">
-      <input type="date" id="d-date-picker" onchange="onDatePick()" style="width:100%;padding:10px 12px;font-size:14px;border:1px solid var(--border2);border-radius:var(--rs);background:var(--bg);color:var(--text);font-family:inherit;-webkit-appearance:none;cursor:pointer">
-      <div id="d-date-display" style="position:absolute;inset:0;padding:10px 38px 10px 12px;font-size:14px;color:var(--text);background:var(--bg);border-radius:var(--rs);pointer-events:none;display:flex;align-items:center"></div>
+      <input type="date" id="d-date-picker" onchange="onDatePick()" style="width:100%;padding:10px 12px;font-size:14px;border:1px solid var(--border2);border-radius:var(--rs);background:var(--bg);color:transparent;font-family:inherit;-webkit-appearance:none;cursor:pointer;caret-color:transparent">
+      <div id="d-date-display" style="position:absolute;inset:0;padding:10px 38px 10px 12px;font-size:14px;color:var(--text);border-radius:var(--rs);pointer-events:none;display:flex;align-items:center">選擇日期</div>
       <i class="ti ti-calendar" style="position:absolute;right:12px;top:50%;transform:translateY(-50%);color:var(--blue);font-size:17px;pointer-events:none"></i>
     </div>
     <input type="hidden" id="d-date">
@@ -570,7 +573,7 @@ if ('serviceWorker' in navigator) {
 // DATA
 // ═══════════════════════════════════════════════
 const FIREBASE_URL = 'https://travel2026-f836d-default-rtdb.firebaseio.com';
-const APP_VERSION = '2.0'; // ← 把這裡換成你的 Firebase URL
+const APP_VERSION = '2.1'; // ← 把這裡換成你的 Firebase URL
 
 const INIT = {
   days:[
@@ -1022,7 +1025,7 @@ function fabDo(type){
 function onDatePick() {
   const val = document.getElementById('d-date-picker').value;
   const disp = document.getElementById('d-date-display');
-  if (!val) { if(disp) disp.textContent=''; return; }
+  if (!val) { if(disp) disp.textContent='選擇日期'; return; }
   const d = new Date(val + 'T00:00:00');
   const days = ['日','一','二','三','四','五','六'];
   const m = d.getMonth() + 1;
@@ -1249,7 +1252,7 @@ function renderTripHistory(){
   el.innerHTML=h.map(function(t){
     var cur=t.code===G.roomCode;
     var switchBtn=cur?'':'<button onclick="switchTrip(&#39;'+t.code+'&#39;)" style="padding:5px 10px;font-size:12px;font-weight:700;border:1px solid var(--border2);border-radius:20px;background:var(--card);color:var(--text2);cursor:pointer;font-family:inherit">切換</button>';
-    var delBtn='<button onclick="deleteTripFromHistory(&#39;'+t.code+'&#39;)" style="padding:5px 8px;font-size:12px;border:none;background:transparent;color:var(--text3);cursor:pointer;font-family:inherit" title="從清單移除">✕</button>';
+    var delBtn='<button data-code="'+t.code+'" onclick="deleteTripFromHistory(this.dataset.code)" style="padding:5px 8px;font-size:12px;border:none;background:transparent;color:var(--text3);cursor:pointer;font-family:inherit;flex-shrink:0" title="從清單移除">✕</button>';
     var btn=switchBtn+delBtn;
     return (cur?'':'<a onclick="switchTrip(&#39;'+t.code+'&#39;)" style="text-decoration:none;display:block;cursor:pointer">')
       +'<div style="display:flex;align-items:center;gap:8px;padding:9px 12px;background:'+(cur?'var(--blue-bg)':'var(--bg)')+';border-radius:var(--rs);border:1px solid '+(cur?'#B5D4F4':'var(--border)')+'"><div style="flex:1"><div style="font-size:13px;font-weight:700;color:'+(cur?'var(--blue)':'var(--text)')+'">'+t.title+(cur?' (目前)':'')+'</div><div style="font-size:11px;color:var(--text3);margin-top:1px">房間碼：'+t.code+(t.date?' · '+t.date:'')+'</div></div>'+btn+'</div>'
@@ -1300,7 +1303,7 @@ function updateRoomDisplay(){
   document.getElementById('room-code-display').textContent=G.roomCode;
   document.getElementById('sync-code-display').textContent=G.roomCode;
 }
-function openSync(){document.getElementById('sync-screen').classList.add('open');document.getElementById('sync-close-btn').style.display='block';document.getElementById('sync-close-btn').style.pointerEvents='auto';applyNamesToSync();renderTripHistory();}
+function openSync(){document.getElementById('sync-screen').classList.add('open');applyNamesToSync();renderTripHistory();}
 function closeSync(){document.getElementById('sync-screen').classList.remove('open');document.getElementById('sync-close-btn').style.display='none';}
 function copyRoomCode(){if(navigator.clipboard)navigator.clipboard.writeText(G.roomCode).catch(()=>{});toast('已複製房間碼 '+G.roomCode);}
 async function joinRoom(){
