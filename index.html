@@ -210,7 +210,10 @@ if ('serviceWorker' in navigator) {
       <div class="slabel">每日行程</div>
       <div style="display:flex;align-items:center;gap:8px;background:var(--blue-bg);color:var(--blue);font-size:12px;font-weight:600;padding:9px 13px;border-radius:var(--rs);margin-bottom:10px;pointer-events:none"><i class="ti ti-hand-stop" style="font-size:16px"></i> 長按任何項目可以編輯、刪除或移動</div>
       <div id="days-list"></div>
-      <button class="add-day-btn" onclick="openAddDay(null)"><i class="ti ti-plus"></i> 新增一天</button>
+      <div style="display:flex;gap:8px;margin-top:6px">
+        <button class="add-day-btn" style="flex:1;margin-top:0" onclick="openAddDay(null)"><i class="ti ti-plus"></i> 新增一天</button>
+        <button class="add-day-btn" style="flex:1;margin-top:0;border-color:var(--blue);color:var(--blue)" onclick="openModal('modal-quick-trip');qtUpdatePreview()"><i class="ti ti-bolt"></i> 快速建立</button>
+      </div>
     </div>
     <div id="tp-remind" class="tp">
       <div class="slabel">提醒事項</div>
@@ -547,6 +550,31 @@ if ('serviceWorker' in navigator) {
   </div>
 </div>
 
+
+<div class="modal-overlay" id="modal-quick-trip" onclick="overlayClose(event,'modal-quick-trip')">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <h3>⚡ 快速建立行程框架</h3>
+    <p style="font-size:13px;color:var(--text2);margin-bottom:4px">輸入出發日期和天數，自動幫你建好每一天</p>
+    <label class="flabel">出發日期</label>
+    <div style="position:relative">
+      <input type="date" id="qt-date-picker" onchange="onQTDatePick()" style="width:100%;padding:10px 12px;font-size:14px;border:1px solid var(--border2);border-radius:var(--rs);background:var(--bg);color:transparent;font-family:inherit;-webkit-appearance:none;cursor:pointer;caret-color:transparent">
+      <div id="qt-date-display" style="position:absolute;inset:0;padding:10px 38px 10px 12px;font-size:14px;color:var(--text);border-radius:var(--rs);pointer-events:none;display:flex;align-items:center">選擇出發日期</div>
+      <i class="ti ti-calendar" style="position:absolute;right:12px;top:50%;transform:translateY(-50%);color:var(--blue);font-size:17px;pointer-events:none"></i>
+    </div>
+    <label class="flabel">總共幾天</label>
+    <div style="display:flex;align-items:center;gap:10px;margin-top:5px">
+      <input type="number" id="qt-days" placeholder="7" min="1" max="30" style="width:80px;text-align:center;font-size:18px;font-weight:700" oninput="qtUpdatePreview()">
+      <span style="font-size:14px;color:var(--text2)">天</span>
+    </div>
+    <div id="qt-preview" style="margin-top:12px;padding:10px 12px;background:var(--bg);border-radius:var(--rs);font-size:12px;color:var(--text2);line-height:1.8;display:none"></div>
+    <div class="mactions">
+      <button class="btn-g" onclick="closeModal('modal-quick-trip')">取消</button>
+      <button class="btn-p" onclick="confirmQuickTrip()">建立</button>
+    </div>
+  </div>
+</div>
+
 <div class="ctx-backdrop" id="ctx-backdrop" onclick="closeCtx()"></div>
 <div class="ctx-menu" id="ctx-menu">
   <div class="ctx-item" onclick="ctxAction('edit')"><i class="ti ti-edit"></i> 編輯</div>
@@ -573,7 +601,7 @@ if ('serviceWorker' in navigator) {
 // DATA
 // ═══════════════════════════════════════════════
 const FIREBASE_URL = 'https://travel2026-f836d-default-rtdb.firebaseio.com';
-const APP_VERSION = '2.1'; // ← 把這裡換成你的 Firebase URL
+const APP_VERSION = '2.2'; // ← 把這裡換成你的 Firebase URL
 
 const INIT = {
   days:[
@@ -1021,6 +1049,61 @@ function fabDo(type){
 // ═══════════════════════════════════════════════
 // CRUD — Days
 // ═══════════════════════════════════════════════
+
+
+// Quick Trip Builder
+var qtStartDate = null;
+
+function onQTDatePick() {
+  const val = document.getElementById('qt-date-picker').value;
+  const disp = document.getElementById('qt-date-display');
+  if (!val) { qtStartDate=null; if(disp) disp.textContent='選擇出發日期'; qtUpdatePreview(); return; }
+  qtStartDate = val;
+  const d = new Date(val + 'T00:00:00');
+  const days = ['日','一','二','三','四','五','六'];
+  const m = d.getMonth() + 1;
+  const day = d.getDate();
+  if(disp) disp.textContent = m + '/' + day + ' (' + days[d.getDay()] + ')';
+  qtUpdatePreview();
+}
+
+function qtUpdatePreview() {
+  const preview = document.getElementById('qt-preview');
+  const daysEl = document.getElementById('qt-days');
+  if (!preview || !daysEl) return;
+  const n = parseInt(daysEl.value) || 0;
+  if (!qtStartDate || n < 1) { preview.style.display='none'; return; }
+  const weekdays = ['日','一','二','三','四','五','六'];
+  const lines = [];
+  for (let i = 0; i < Math.min(n, 7); i++) {
+    const d = new Date(qtStartDate + 'T00:00:00');
+    d.setDate(d.getDate() + i);
+    const m = d.getMonth()+1, day = d.getDate(), wd = weekdays[d.getDay()];
+    lines.push('Day ' + (i+1) + ' &nbsp;' + m + '/' + day + ' (' + wd + ')');
+  }
+  if (n > 7) lines.push('… 共 ' + n + ' 天');
+  preview.innerHTML = lines.join('<br>');
+  preview.style.display = 'block';
+}
+
+function confirmQuickTrip() {
+  const n = parseInt(document.getElementById('qt-days').value) || 0;
+  if (!qtStartDate) { toast('請選擇出發日期'); return; }
+  if (n < 1 || n > 30) { toast('請輸入 1–30 天'); return; }
+  if (G.days && G.days.length > 0) {
+    if (!confirm('已有 ' + G.days.length + ' 天行程，確定要新增 ' + n + ' 天嗎？')) return;
+  }
+  const weekdays = ['日','一','二','三','四','五','六'];
+  for (let i = 0; i < n; i++) {
+    const d = new Date(qtStartDate + 'T00:00:00');
+    d.setDate(d.getDate() + i);
+    const m = d.getMonth()+1, day = d.getDate(), wd = weekdays[d.getDay()];
+    const dateStr = m + '/' + day + ' (' + wd + ')';
+    G.days.push({ date: dateStr, title: 'Day ' + (i+1), sub: '', badges: [], events: [] });
+  }
+  scheduleSave(); renderDays(); closeModal('modal-quick-trip');
+  toast('已建立 ' + n + ' 天行程框架！');
+}
 
 function onDatePick() {
   const val = document.getElementById('d-date-picker').value;
