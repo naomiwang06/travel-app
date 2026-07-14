@@ -601,7 +601,7 @@ if ('serviceWorker' in navigator) {
 // DATA
 // ═══════════════════════════════════════════════
 const FIREBASE_URL = 'https://travel2026-f836d-default-rtdb.firebaseio.com';
-const APP_VERSION = '2.2'; // ← 把這裡換成你的 Firebase URL
+const APP_VERSION = '2.3'; // ← 把這裡換成你的 Firebase URL
 
 const INIT = {
   days:[
@@ -1074,14 +1074,18 @@ function qtUpdatePreview() {
   const n = parseInt(daysEl.value) || 0;
   if (!qtStartDate || n < 1) { preview.style.display='none'; return; }
   const weekdays = ['日','一','二','三','四','五','六'];
+  const cur = G.days ? G.days.length : 0;
   const lines = [];
   for (let i = 0; i < Math.min(n, 7); i++) {
     const d = new Date(qtStartDate + 'T00:00:00');
     d.setDate(d.getDate() + i);
     const m = d.getMonth()+1, day = d.getDate(), wd = weekdays[d.getDay()];
-    lines.push('Day ' + (i+1) + ' &nbsp;' + m + '/' + day + ' (' + wd + ')');
+    const isNew = i >= cur;
+    lines.push('Day ' + (i+1) + ' &nbsp;' + m + '/' + day + ' (' + wd + ')' + (isNew ? ' <span style="color:var(--blue);font-size:10px">新增</span>' : ''));
   }
-  if (n > 7) lines.push('… 共 ' + n + ' 天');
+  if (n > 7) lines.push('… 共 ' + n + ' 天' + (n > cur ? '（新增 ' + (n-cur) + ' 天）' : n < cur ? '（刪除 ' + (cur-n) + ' 天）' : ''));
+  else if (n > cur) lines.push('<span style="color:var(--blue)">＋新增 ' + (n-cur) + ' 天</span>');
+  else if (n < cur) lines.push('<span style="color:var(--red)">－刪除最後 ' + (cur-n) + ' 天</span>');
   preview.innerHTML = lines.join('<br>');
   preview.style.display = 'block';
 }
@@ -1090,19 +1094,46 @@ function confirmQuickTrip() {
   const n = parseInt(document.getElementById('qt-days').value) || 0;
   if (!qtStartDate) { toast('請選擇出發日期'); return; }
   if (n < 1 || n > 30) { toast('請輸入 1–30 天'); return; }
-  if (G.days && G.days.length > 0) {
-    if (!confirm('已有 ' + G.days.length + ' 天行程，確定要新增 ' + n + ' 天嗎？')) return;
-  }
   const weekdays = ['日','一','二','三','四','五','六'];
-  for (let i = 0; i < n; i++) {
-    const d = new Date(qtStartDate + 'T00:00:00');
-    d.setDate(d.getDate() + i);
-    const m = d.getMonth()+1, day = d.getDate(), wd = weekdays[d.getDay()];
-    const dateStr = m + '/' + day + ' (' + wd + ')';
-    G.days.push({ date: dateStr, title: 'Day ' + (i+1), sub: '', badges: [], events: [] });
+  const cur = G.days ? G.days.length : 0;
+
+  if (n === cur) {
+    // Just update dates from start date
+    for (let i = 0; i < n; i++) {
+      const d = new Date(qtStartDate + 'T00:00:00');
+      d.setDate(d.getDate() + i);
+      const m = d.getMonth()+1, day = d.getDate(), wd = weekdays[d.getDay()];
+      G.days[i].date = m + '/' + day + ' (' + wd + ')';
+    }
+    toast('已更新日期！');
+  } else if (n > cur) {
+    // Update existing + add missing days
+    for (let i = 0; i < n; i++) {
+      const d = new Date(qtStartDate + 'T00:00:00');
+      d.setDate(d.getDate() + i);
+      const m = d.getMonth()+1, day = d.getDate(), wd = weekdays[d.getDay()];
+      const dateStr = m + '/' + day + ' (' + wd + ')';
+      if (i < cur) {
+        G.days[i].date = dateStr;
+      } else {
+        G.days.push({ date: dateStr, title: 'Day ' + (i+1), sub: '', badges: [], events: [] });
+      }
+    }
+    toast('已更新為 ' + n + ' 天！（新增了 ' + (n-cur) + ' 天）');
+  } else {
+    // n < cur: confirm before removing days
+    if (!confirm('目前有 ' + cur + ' 天，改為 ' + n + ' 天會刪除最後 ' + (cur-n) + ' 天的資料，確定嗎？')) return;
+    // Update remaining dates
+    for (let i = 0; i < n; i++) {
+      const d = new Date(qtStartDate + 'T00:00:00');
+      d.setDate(d.getDate() + i);
+      const m = d.getMonth()+1, day = d.getDate(), wd = weekdays[d.getDay()];
+      G.days[i].date = m + '/' + day + ' (' + wd + ')';
+    }
+    G.days = G.days.slice(0, n);
+    toast('已更新為 ' + n + ' 天！');
   }
   scheduleSave(); renderDays(); closeModal('modal-quick-trip');
-  toast('已建立 ' + n + ' 天行程框架！');
 }
 
 function onDatePick() {
