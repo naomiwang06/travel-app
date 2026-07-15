@@ -40,7 +40,7 @@ body{font-family:-apple-system,'Helvetica Neue',sans-serif;background:var(--bg);
 .day-badges{display:flex;gap:3px;flex-wrap:wrap}
 .badge{font-size:10px;padding:2px 7px;border-radius:10px;font-weight:700}
 .b-blue{background:var(--blue-bg);color:var(--blue)}.b-green{background:var(--green-bg);color:var(--green)}.b-amber{background:var(--amber-bg);color:var(--amber)}.b-purple{background:var(--purple-bg);color:var(--purple)}.b-pink{background:var(--pink-bg);color:var(--pink)}
-.day-edit-btn{width:32px;height:32px;border:none;background:transparent;cursor:pointer;border-radius:8px;display:flex;align-items:center;justify-content:center;color:var(--text3);font-size:15px;flex-shrink:0}
+.day-edit-btn{width:32px;height:32px;border:none;background:var(--bg);cursor:pointer;border-radius:8px;display:flex;align-items:center;justify-content:center;color:var(--text2);font-size:15px;flex-shrink:0;border:1px solid var(--border)}
 .day-edit-btn:active{background:var(--bg)}
 .chev{transition:transform .2s;color:var(--text3)}
 .chev.open{transform:rotate(180deg)}
@@ -601,7 +601,7 @@ if ('serviceWorker' in navigator) {
 // DATA
 // ═══════════════════════════════════════════════
 const FIREBASE_URL = 'https://travel2026-f836d-default-rtdb.firebaseio.com';
-const APP_VERSION = '2.3'; // ← 把這裡換成你的 Firebase URL
+const APP_VERSION = '2.4'; // ← 把這裡換成你的 Firebase URL
 
 const INIT = {
   days:[
@@ -772,7 +772,7 @@ function renderDays(){
       const mapH=ev.mapUrl?`<a class="map-btn" href="${ev.mapUrl}" target="_blank"><i class="ti ti-brand-google-maps"></i> 導航</a>`:'';
       return`<div class="ev-wrap" ${drag}><div class="ev"><div class="drag-handle"><i class="ti ti-grip-vertical"></i></div><div class="ev-time">${ev.time||''}</div><div class="ev-line"><div class="ev-dot" style="background:${c[1]}"></div>${conn}</div><div class="ev-body" onclick="openAddEvent(${i},${ei})" style="cursor:pointer"><div class="ev-title">${ev.title}</div>${ev.note?`<div class="ev-note">${ev.note}</div>`:''}${mapH}</div></div></div>`;
     }).join('');
-    return`<div class="daycard" id="dc-${i}"><div class="day-hdr" onclick="toggleDay(${i})"><div class="day-num" style="background:${c[0]};color:${c[1]}">${i+1}</div><div class="day-meta"><div class="day-name">${d.date}&ensp;${d.title}</div>${d.sub?`<div class="day-sub">${d.sub}</div>`:''}</div><div class="day-badges">${badges}</div><button class="day-edit-btn" onclick="openAddDay(${i});event.stopPropagation()" aria-label="編輯"><i class="ti ti-edit"></i></button><i class="ti ti-chevron-down chev" id="chev-${i}"></i></div><div class="day-body" id="db-${i}" style="display:none">${evs}<button class="add-ev-btn" onclick="openAddEvent(${i},null)"><i class="ti ti-plus"></i> 新增項目</button></div></div>`;
+    return`<div class="daycard" id="dc-${i}"><div class="day-hdr"><div class="day-num" style="background:${c[0]};color:${c[1]};cursor:pointer" onclick="toggleDay(${i})">${i+1}</div><div class="day-meta" onclick="toggleDay(${i})" style="cursor:pointer"><div class="day-name">${d.date}&ensp;${d.title}</div>${d.sub?`<div class="day-sub">${d.sub}</div>`:''}</div><div class="day-badges" onclick="toggleDay(${i})" style="cursor:pointer">${badges}</div><button class="day-edit-btn" onclick="openAddDay(${i});event.stopPropagation()" aria-label="編輯" title="編輯這天">✏️</button><i class="ti ti-chevron-down chev" id="chev-${i}" onclick="toggleDay(${i})" style="cursor:pointer"></i></div><div class="day-body" id="db-${i}" style="display:none">${evs}<button class="add-ev-btn" onclick="openAddEvent(${i},null)"><i class="ti ti-plus"></i> 新增項目</button></div></div>`;
   }).join('');
   // attach long press
   setTimeout(()=>{
