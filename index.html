@@ -622,7 +622,7 @@ if ('serviceWorker' in navigator) {
 // DATA
 // ═══════════════════════════════════════════════
 const FIREBASE_URL = 'https://travel2026-f836d-default-rtdb.firebaseio.com';
-const APP_VERSION = '2.6'; // ← 把這裡換成你的 Firebase URL
+const APP_VERSION = '2.7'; // ← 把這裡換成你的 Firebase URL
 
 const INIT = {
   days:[
@@ -1504,12 +1504,14 @@ async function joinRoom(){
   // 5. Open day 1
   setTimeout(()=>{const db=document.getElementById('db-0');if(db){db.style.display='block';document.getElementById('chev-0')?.classList.add('open');}},100);
 
-  // 6. Firebase in background
+  // 6. Firebase in background (read only - never overwrite on init)
   if(FIREBASE_URL!=='YOUR_FIREBASE_URL'){
     const loaded=await loadFirebase(G.roomCode);
-    if(loaded){renderAll();scheduleSave();}
-  }else{
-    scheduleSave(); // save INIT to local
+    if(loaded){
+      renderAll();
+      // Only save to localStorage as mirror, NOT back to Firebase
+      try{localStorage.setItem('t_'+G.roomCode,JSON.stringify({days:G.days,reminders:G.reminders,accom:G.accom,luggage:G.luggage,packs:G.packs,notes:G.notes,nameA:G.nameA,nameB:G.nameB}));}catch(e){}
+    }
   }
 })();
 </script>
