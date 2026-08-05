@@ -272,6 +272,7 @@ if ('serviceWorker' in navigator) {
     <h2 style="font-size:20px;font-weight:700;margin-bottom:6px">分享旅程</h2>
     <p style="font-size:14px;color:var(--text2);margin-bottom:4px">把房間碼傳給旅伴，對方輸入後即時同步</p>
     <div class="code-box" id="sync-code-display">----</div>
+    <button onclick="forceReloadFirebase()" style="width:100%;padding:12px;background:transparent;color:var(--blue);border:1px solid var(--blue);border-radius:var(--rs);font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;margin-bottom:10px;display:flex;align-items:center;justify-content:center;gap:6px"><i class="ti ti-refresh"></i> 從雲端強制重新載入</button>
     <button onclick="copyRoomCode()" style="width:100%;padding:14px;background:var(--blue);color:#fff;border:none;border-radius:var(--rs);font-size:15px;font-weight:700;cursor:pointer;font-family:inherit;margin-top:4px"><i class="ti ti-copy"></i> 複製房間碼</button>
     <div style="margin:12px 0;display:flex;align-items:center;gap:8px"><div style="flex:1;height:1px;background:var(--border)"></div><span style="font-size:12px;color:var(--text3)">或</span><div style="flex:1;height:1px;background:var(--border)"></div></div>
     <input type="text" id="join-input" placeholder="輸入旅伴的房間碼" style="text-align:center;letter-spacing:5px;font-size:18px;font-weight:700;margin-bottom:10px">
@@ -622,7 +623,7 @@ if ('serviceWorker' in navigator) {
 // DATA
 // ═══════════════════════════════════════════════
 const FIREBASE_URL = 'https://travel2026-f836d-default-rtdb.firebaseio.com';
-const APP_VERSION = '2.7'; // ← 把這裡換成你的 Firebase URL
+const APP_VERSION = '2.8'; // ← 把這裡換成你的 Firebase URL
 
 const INIT = {
   days:[
@@ -770,6 +771,7 @@ function calcWarn(dep,mins){
 }
 
 function renderDays(){
+  try{
   const el=document.getElementById('days-list');
   if(!G.days||!G.days.length){el.innerHTML='<div style="text-align:center;padding:28px;font-size:14px;color:var(--text3)">尚無行程，點下方按鈕或右下角 + 新增</div>';return;}
   el.innerHTML=G.days.map((d,i)=>{
@@ -1458,6 +1460,31 @@ function confirmCreateNewTrip(){
   closeModal('modal-new-trip');closeSync();
   toast('已建立「'+(name||'新旅程')+'」！房間碼：'+code);
 }
+
+async function forceReloadFirebase() {
+  if (FIREBASE_URL === 'YOUR_FIREBASE_URL') { toast('尚未設定 Firebase'); return; }
+  toast('從雲端載入中…');
+  closeSync();
+  try {
+    const url = FIREBASE_URL.replace(/\/$/,'') + '/trips/' + G.roomCode + '/data.json';
+    const r = await fetch(url + '?ts=' + Date.now()); // bypass cache
+    const d = await r.json();
+    if (d && (d.days || d.reminders)) {
+      Object.assign(G, d);
+      G.notes = G.notes || [];
+      G.nameA = G.nameA || '旅伴 A';
+      G.nameB = G.nameB || '旅伴 B';
+      renderAll();
+      try { localStorage.setItem('t_'+G.roomCode, JSON.stringify({days:G.days,reminders:G.reminders,accom:G.accom,luggage:G.luggage,packs:G.packs,notes:G.notes,nameA:G.nameA,nameB:G.nameB})); } catch(e) {}
+      toast('✓ 資料已從雲端載入！共 ' + (G.days||[]).length + ' 天行程');
+    } else {
+      toast('雲端沒有找到資料（房間碼：' + G.roomCode + '）');
+    }
+  } catch(e) {
+    toast('載入失敗：' + e.message);
+  }
+}
+
 function updateRoomDisplay(){
   const vEl=document.getElementById('app-ver');if(vEl)vEl.textContent=APP_VERSION;
   document.getElementById('room-code-display').textContent=G.roomCode;
@@ -1493,7 +1520,7 @@ async function joinRoom(){
   if(!saved)localStorage.setItem('travel_room',G.roomCode);
 
   // 3. Try to overlay with saved local data (user's edits)
-  loadLocal(G.roomCode);
+  var hasLocal = loadLocal(G.roomCode);
 
   // 4. Show immediately
   updateRoomDisplay();
@@ -1516,4 +1543,27 @@ async function joinRoom(){
 })();
 </script>
 </body>
-</html>
+</html>function getDayAccom(dayIdx, dateStr) {
+  try {
+    if (!G.accom || !G.accom.length || !dateStr) return '';
+    function parseD(s) {
+      if (!s) return null;
+      var parts = s.match(/(\d+)\/(\d+)/);
+      if (!parts) return null;
+      return new Date(new Date().getFullYear(), parseInt(parts[1])-1, parseInt(parts[2]));
+    }
+    var dd = parseD(dateStr);
+    if (!dd) return '';
+    for (var a of G.accom) {
+      var ci = parseD(a.checkIn), co = parseD(a.checkOut);
+      if (!ci || !co) continue;
+      if (dd >= ci && dd < co) {
+        var nav = a.mapUrl ? ' onclick="window.open(\'' + a.mapUrl.replace(/'/g,'%27') + '\',\'_blank\')"' : '';
+        var ico = a.mapUrl ? '<i class="ti ti-brand-google-maps" style="font-size:13px;color:var(--blue)"></i>' : '';
+        return '<div class="day-accom"' + nav + '><div class="day-accom-icon"><i class="ti ti-building" style="font-size:12px;color:#fff"></i></div><span class="day-accom-name">' + a.name + '</span><span class="day-accom-label">今晚住宿</span>' + ico + '</div>';
+      }
+    }
+    return '';
+  } catch(e) { return ''; }
+}
+
