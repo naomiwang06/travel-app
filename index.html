@@ -802,6 +802,7 @@ function renderDays(){
     document.querySelectorAll('.ev-wrap[data-day]').forEach(el=>attachLp(el,'ev',+el.dataset.day,+el.dataset.ev));
     document.querySelectorAll('.daycard').forEach((el,i)=>{const h=el.querySelector('.day-hdr');if(h)attachLp(h,'day',i,null);});
   },50);
+  } catch(e){console.error('renderDays:',e);}
 }
 
 function toggleDay(i){
