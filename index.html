@@ -634,7 +634,7 @@ if ('serviceWorker' in navigator) {
 // DATA
 // ═══════════════════════════════════════════════
 const FIREBASE_URL = 'https://travel2026-f836d-default-rtdb.firebaseio.com';
-const APP_VERSION = '3.0'; // ← 把這裡換成你的 Firebase URL
+const APP_VERSION = '3.2'; // ← 把這裡換成你的 Firebase URL
 
 const INIT = {
   days:[
@@ -1233,13 +1233,13 @@ function openAddEvent(dayIdx,evIdx){
   editEvIdx=evIdx;G.curDay=dayIdx;G.selPlace.ev=null;
   document.getElementById('ev-modal-title').textContent=evIdx===null?'新增項目':'編輯項目';
   document.getElementById('ev-del-btn').style.display=evIdx===null?'none':'block';
-  ['ev-time','ev-title','ev-note','ev-place-q','ev-url-paste','tr-depart','tr-arrive','tr-from','tr-to','tr-type','tr-duration','tr-warn','fl-time','fl-title','fl-items'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';}); const evUrlStatus=document.getElementById('ev-url-status');if(evUrlStatus)evUrlStatus.style.display='none';
+  ['ev-time','ev-title','ev-note','ev-place-q','ev-url-paste','tr-depart','tr-arrive','tr-from','tr-to','tr-type','tr-duration','tr-warn','tr-note','fl-time','fl-title','fl-items'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';}); const evUrlStatus=document.getElementById('ev-url-status');if(evUrlStatus)evUrlStatus.style.display='none';
   document.getElementById('ev-place-results').style.display='none';
   document.getElementById('ev-place-sel').style.display='none';
   if(evIdx!==null){
     const ev=G.days[dayIdx].events[evIdx];setEvType(ev.type||'normal');
     if(ev.type==='normal'){document.getElementById('ev-time').value=ev.time||'';document.getElementById('ev-title').value=ev.title||'';document.getElementById('ev-note').value=ev.note||'';if(ev.mapUrl){document.getElementById('ev-place-sel').textContent='已儲存地圖連結';document.getElementById('ev-place-sel').style.display='block';G.selPlace.ev={url:ev.mapUrl};}}
-    else if(ev.type==='train'){document.getElementById('tr-depart').value=ev.depart||'';document.getElementById('tr-arrive').value=ev.arrive||'';document.getElementById('tr-from').value=ev.from||'';document.getElementById('tr-to').value=ev.to||'';document.getElementById('tr-type').value=ev.trainType||'';document.getElementById('tr-duration').value=ev.duration||'';document.getElementById('tr-warn').value=ev.warnMin||'';}
+    else if(ev.type==='train'){document.getElementById('tr-depart').value=ev.depart||'';document.getElementById('tr-arrive').value=ev.arrive||'';document.getElementById('tr-from').value=ev.from||'';document.getElementById('tr-to').value=ev.to||'';document.getElementById('tr-type').value=ev.trainType||'';document.getElementById('tr-duration').value=ev.duration||'';document.getElementById('tr-warn').value=ev.warnMin||'';document.getElementById('tr-note').value=ev.note||'';}
     else if(ev.type==='flex'){document.getElementById('fl-time').value=ev.flexTime||'';document.getElementById('fl-title').value=ev.flexTitle||'';document.getElementById('fl-items').value=(ev.flexItems||[]).join('\n');if(ev.segColor){G.segColor=ev.segColor;document.querySelectorAll('.swatch').forEach(s=>s.classList.toggle('on',s.dataset.c===ev.segColor.c));}}
   }else setEvType('normal');
   openModal('modal-event');
@@ -1247,7 +1247,7 @@ function openAddEvent(dayIdx,evIdx){
 function saveEvent(){
   const ev={type:G.evType};
   if(G.evType==='normal'){const t=document.getElementById('ev-title').value.trim();if(!t){toast('請填寫名稱');return;}ev.time=document.getElementById('ev-time').value.trim();ev.title=t;ev.note=document.getElementById('ev-note').value.trim();ev.mapUrl=G.selPlace.ev?G.selPlace.ev.url:(editEvIdx!==null&&G.days[G.curDay]?.events[editEvIdx]?G.days[G.curDay].events[editEvIdx].mapUrl||'':'');}
-  else if(G.evType==='train'){const fr=document.getElementById('tr-from').value.trim(),to=document.getElementById('tr-to').value.trim();if(!fr||!to){toast('請填寫出發站與抵達站');return;}ev.time=document.getElementById('tr-depart').value.trim();ev.depart=ev.time;ev.arrive=document.getElementById('tr-arrive').value.trim();ev.from=fr;ev.to=to;ev.trainType=document.getElementById('tr-type').value.trim();ev.duration=parseInt(document.getElementById('tr-duration').value)||0;ev.warnMin=parseInt(document.getElementById('tr-warn').value)||0;ev.mapUrl=G.selPlace.ev?G.selPlace.ev.url:'https://www.google.com/maps/search/?api=1&query='+encodeURIComponent(fr);}
+  else if(G.evType==='train'){const fr=document.getElementById('tr-from').value.trim(),to=document.getElementById('tr-to').value.trim();if(!fr||!to){toast('請填寫出發站與抵達站');return;}ev.time=document.getElementById('tr-depart').value.trim();ev.depart=ev.time;ev.arrive=document.getElementById('tr-arrive').value.trim();ev.from=fr;ev.to=to;ev.trainType=document.getElementById('tr-type').value.trim();ev.duration=parseInt(document.getElementById('tr-duration').value)||0;ev.warnMin=parseInt(document.getElementById('tr-warn').value)||0;ev.note=document.getElementById('tr-note').value.trim();ev.mapUrl=G.selPlace.ev?G.selPlace.ev.url:'https://www.google.com/maps/search/?api=1&query='+encodeURIComponent(fr);}
   else{const ft=document.getElementById('fl-title').value.trim();if(!ft){toast('請填寫標題');return;}ev.time=(document.getElementById('fl-time').value.trim().split('–')[0]||'').trim();ev.flexTime=document.getElementById('fl-time').value.trim();ev.flexTitle=ft;ev.flexItems=document.getElementById('fl-items').value.split('\n').map(s=>s.trim()).filter(Boolean);ev.segColor=Object.assign({},G.segColor);}
   if(!G.days[G.curDay].events)G.days[G.curDay].events=[];
   if(editEvIdx===null)G.days[G.curDay].events.push(ev);else G.days[G.curDay].events[editEvIdx]=ev;
@@ -1519,6 +1519,14 @@ function guessCity(day){
   for(var city of Object.keys(CITY_COORD)) if(text.includes(city)) return city;
   return null;
 }
+function formatWeatherDate(str){
+  // Format "8/11 (二)" → "2025-08-11" WITHOUT going through UTC
+  if(!str)return null;
+  var m=str.match(/(\d+)\/(\d+)/);
+  if(!m)return null;
+  var yr=new Date().getFullYear();
+  return yr+'-'+String(parseInt(m[1])).padStart(2,'0')+'-'+String(parseInt(m[2])).padStart(2,'0');
+}
 function parseWeatherDate(str){
   if(!str)return null;
   var m=str.match(/(\d+)\/(\d+)/);
@@ -1544,8 +1552,7 @@ async function fetchWeatherCard(idx){
     var res=await fetch(url);
     var data=await res.json();
     if(!data.daily)throw new Error('no data');
-    var targetDate=parseWeatherDate(day.date);
-    var target=targetDate?targetDate.toISOString().split('T')[0]:data.daily.time[0];
+    var target=formatWeatherDate(day.date)||data.daily.time[0];
     var targetIdx=data.daily.time.indexOf(target);
     // Show 5 days centered on target (or from start if early)
     var start=Math.max(0,targetIdx-1);
