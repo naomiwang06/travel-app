@@ -623,7 +623,7 @@ if ('serviceWorker' in navigator) {
 // DATA
 // ═══════════════════════════════════════════════
 const FIREBASE_URL = 'https://travel2026-f836d-default-rtdb.firebaseio.com';
-const APP_VERSION = '2.8'; // ← 把這裡換成你的 Firebase URL
+const APP_VERSION = '2.9'; // ← 把這裡換成你的 Firebase URL
 
 const INIT = {
   days:[
@@ -1461,6 +1461,95 @@ function confirmCreateNewTrip(){
   toast('已建立「'+(name||'新旅程')+'」！房間碼：'+code);
 }
 
+// ─── Accommodation per day ────────────────────────────
+function getDayAccom(dayIdx, dateStr) {
+  try {
+    if (!G.accom || !G.accom.length || !dateStr) return '';
+    function parseD(s) {
+      if (!s) return null;
+      var parts = s.match(/(\d+)\/(\d+)/);
+      if (!parts) return null;
+      return new Date(new Date().getFullYear(), parseInt(parts[1])-1, parseInt(parts[2]));
+    }
+    var dd = parseD(dateStr);
+    if (!dd) return '';
+    for (var a of G.accom) {
+      var ci = parseD(a.checkIn), co = parseD(a.checkOut);
+      if (!ci || !co) continue;
+      if (dd >= ci && dd < co) {
+        var nav = a.mapUrl ? ' onclick="window.open(\'' + a.mapUrl.replace(/'/g,'%27') + '\',\'_blank\')"' : '';
+        var ico = a.mapUrl ? '<i class="ti ti-brand-google-maps" style="font-size:13px;color:var(--blue)"></i>' : '';
+        return '<div class="day-accom"' + nav + '><div class="day-accom-icon"><i class="ti ti-building" style="font-size:12px;color:#fff"></i></div><span class="day-accom-name">' + a.name + '</span><span class="day-accom-label">今晚住宿</span>' + ico + '</div>';
+      }
+    }
+    return '';
+  } catch(e) { return ''; }
+}
+
+// ─── Weather ──────────────────────────────────────────
+var wCache={};
+var WMO_ICON={0:'☀️',1:'🌤️',2:'⛅',3:'☁️',45:'🌫️',48:'🌫️',51:'🌦️',53:'🌦️',55:'🌧️',61:'🌧️',63:'🌧️',65:'🌧️',71:'❄️',73:'❄️',75:'❄️',77:'🌨️',80:'🌦️',81:'🌧️',82:'🌧️',95:'⛈️',96:'⛈️',99:'⛈️'};
+var WMO_DESC={0:'晴天',1:'大致晴朗',2:'部分多雲',3:'陰天',45:'有霧',48:'霜霧',51:'小毛毛雨',53:'毛毛雨',55:'濃毛毛雨',61:'小雨',63:'中雨',65:'大雨',71:'小雪',73:'中雪',75:'大雪',77:'雪粒',80:'陣雨',81:'中陣雨',82:'強陣雨',95:'雷雨',96:'雷陣雨',99:'強雷雨'};
+var CITY_COORD={
+  '東京':[35.6762,139.6503],'上野':[35.7141,139.7774],'新宿':[35.6938,139.7034],
+  '涉谷':[35.6580,139.7016],'秋葉原':[35.7022,139.7741],'淺草':[35.7148,139.7967],
+  '目黑':[35.6337,139.7152],'品川':[35.6284,139.7387],'羽田':[35.5494,139.7798],
+  '成田':[35.7719,140.3929],'京都':[35.0116,135.7681],'大阪':[34.6937,135.5023],
+  '名古屋':[35.1815,136.9066],'博多':[33.5904,130.4017],'福岡':[33.5902,130.4017],
+  '札幌':[43.0642,141.3469],'仙台':[38.2688,140.8721],'橫濱':[35.4437,139.6380],
+  '熱海':[35.1017,139.0769],'鎌倉':[35.3197,139.5467],'箱根':[35.2328,139.1068],
+  '船橋':[35.6943,139.9826],'千葉':[35.6073,140.1063],'神戶':[34.6901,135.1956],
+  '奈良':[34.6851,135.8048],'日光':[36.7485,139.5990],'難波':[34.6632,135.5015]
+};
+function guessCity(day){
+  var text=(day.title||'')+' '+(day.sub||'');
+  for(var ev of (day.events||[])) text+=' '+(ev.title||'')+' '+(ev.note||'');
+  for(var city of Object.keys(CITY_COORD)) if(text.includes(city)) return city;
+  return null;
+}
+function parseWeatherDate(str){
+  if(!str)return null;
+  var m=str.match(/(\d+)\/(\d+)/);
+  if(!m)return null;
+  return new Date(new Date().getFullYear(),parseInt(m[1])-1,parseInt(m[2]));
+}
+async function fetchWeather(idx){
+  var day=G.days[idx];if(!day)return;
+  var el=document.getElementById('weather-'+idx);if(!el)return;
+  var key=idx+'_'+day.date;
+  if(wCache[key]){showWeather(el,wCache[key]);return;}
+  var city=guessCity(day);
+  var coord=city?CITY_COORD[city]:null;
+  if(!coord){
+    var inp=prompt('查哪個城市的天氣？','東京');
+    if(!inp)return;
+    city=inp;coord=CITY_COORD[inp]||CITY_COORD['東京'];
+  }
+  el.innerHTML='<div style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--text3)"><div class="spinner"></div> 查詢天氣中…</div>';
+  try{
+    var url='https://api.open-meteo.com/v1/forecast?latitude='+coord[0]+'&longitude='+coord[1]+'&daily=weathercode,temperature_2m_max,temperature_2m_min,precipitation_sum&timezone=Asia%2FTokyo&forecast_days=16';
+    var res=await fetch(url);
+    var data=await res.json();
+    if(!data.daily)throw new Error('no data');
+    var date=parseWeatherDate(day.date);
+    var target=date?date.toISOString().split('T')[0]:data.daily.time[0];
+    var i2=data.daily.time.indexOf(target);
+    var w=i2>=0?{city:city,code:data.daily.weathercode[i2],max:Math.round(data.daily.temperature_2m_max[i2]),min:Math.round(data.daily.temperature_2m_min[i2]),rain:data.daily.precipitation_sum[i2]}:{city:city,code:0,max:'--',min:'--',rain:0,noData:true};
+    wCache[key]=w;showWeather(el,w);
+  }catch(e){
+    el.innerHTML='<i class="ti ti-cloud-off" style="font-size:14px;color:var(--text3)"></i><span style="font-size:12px;color:var(--text3)">查詢失敗，點擊重試</span>';
+  }
+}
+function showWeather(el,w){
+  var icon=WMO_ICON[w.code]||'🌡️';
+  var desc=WMO_DESC[w.code]||'';
+  var rain=w.rain>0?' · 降雨 '+w.rain+'mm':'';
+  var note=w.noData?' (超出預報範圍)':'';
+  el.innerHTML='<span class="weather-icon">'+icon+'</span><span class="weather-temp">'+w.max+'°/'+w.min+'°C</span><span class="weather-desc">'+desc+rain+' · '+w.city+note+'</span>';
+  el.onclick=null;el.style.cursor='default';
+}
+
+
 async function forceReloadFirebase() {
   if (FIREBASE_URL === 'YOUR_FIREBASE_URL') { toast('尚未設定 Firebase'); return; }
   toast('從雲端載入中…');
@@ -1543,27 +1632,4 @@ async function joinRoom(){
 })();
 </script>
 </body>
-</html>function getDayAccom(dayIdx, dateStr) {
-  try {
-    if (!G.accom || !G.accom.length || !dateStr) return '';
-    function parseD(s) {
-      if (!s) return null;
-      var parts = s.match(/(\d+)\/(\d+)/);
-      if (!parts) return null;
-      return new Date(new Date().getFullYear(), parseInt(parts[1])-1, parseInt(parts[2]));
-    }
-    var dd = parseD(dateStr);
-    if (!dd) return '';
-    for (var a of G.accom) {
-      var ci = parseD(a.checkIn), co = parseD(a.checkOut);
-      if (!ci || !co) continue;
-      if (dd >= ci && dd < co) {
-        var nav = a.mapUrl ? ' onclick="window.open(\'' + a.mapUrl.replace(/'/g,'%27') + '\',\'_blank\')"' : '';
-        var ico = a.mapUrl ? '<i class="ti ti-brand-google-maps" style="font-size:13px;color:var(--blue)"></i>' : '';
-        return '<div class="day-accom"' + nav + '><div class="day-accom-icon"><i class="ti ti-building" style="font-size:12px;color:#fff"></i></div><span class="day-accom-name">' + a.name + '</span><span class="day-accom-label">今晚住宿</span>' + ico + '</div>';
-      }
-    }
-    return '';
-  } catch(e) { return ''; }
-}
-
+</html>
